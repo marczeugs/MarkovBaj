@@ -183,8 +183,12 @@ fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<St
 
 fun PublicContributionReference.safeReply(text: String) {
     if (System.getenv("markovbaj_actuallysendreplies") == "true") {
-        reply(text)
-        logger.info("Replied with '$text'.")
+        try {
+            reply(text)
+            logger.info("Replied with '$text'.")
+        } catch (e: Exception) {
+            logger.error("Reply failed:", e)
+        }
     } else {
         logger.info("[NOT ACTUALLY REPLYING] Would have replied with '$text'.")
     }
