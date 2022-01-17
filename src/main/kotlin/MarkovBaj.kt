@@ -70,6 +70,8 @@ fun runBot() {
 
     logger.info("Connected to Reddit.")
 
+    val forsenSubreddit = redditClient.subreddit("forsen")
+
     var alreadyProcessedPostIds = listOf<String>()
     var alreadyProcessedCommentsIds = listOf<String>()
 
@@ -79,7 +81,12 @@ fun runBot() {
 
     fixedRateTimer(period = Constants.checkInterval.inWholeMilliseconds) {
         botCoroutineScope.launch {
-            val forsenSubreddit = redditClient.subreddit("forsen")
+            val newInboxMessages = redditClient.me()
+                .inbox()
+                .iterate("unread")
+                .build()
+                .accumulateMerged(1)
+                .filter { it.subject == "username mention" }
 
             val newPosts = forsenSubreddit.posts()
                 .sorting(SubredditSort.NEW)
@@ -94,12 +101,47 @@ fun runBot() {
                 .accumulateMerged(1)
                 .filter { it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) && it.id !in alreadyProcessedCommentsIds }
 
-            logger.info("${newPosts.size} new post(s), ${newComments.size} new comment(s).")
+            logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
 
             alreadyProcessedPostIds = newPosts.map { it.id }
             alreadyProcessedCommentsIds = newComments.map { it.id }
 
             var commentCounter = 0
+
+            for (message in newInboxMessages) {
+                if (commentCounter >= Constants.maxCommentsPerCheck) {
+                    logger.warn("Hit comment limit, not posting any more replies.")
+                    return@launch
+                }
+
+                if (!message.isComment) {
+                    logger.warn("Username mention with id ${message.id} was not a comment, skipping...")
+                    return@launch
+                }
+
+                val wordsInTitle = message.body.lowercase().split(Constants.wordSeparatorRegex)
+
+                val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
+                    tryGeneratingReplyFromWords(markovChain, wordsInTitle)
+                } else {
+                    null
+                }
+
+                val actualReply = if (relatedReply != null) {
+                    logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
+                    relatedReply
+                } else {
+                    markovChain.generateSequence().joinToString(" ").also {
+                        logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
+                    }
+                }
+
+                redditClient.comment(message.id).safeReply(actualReply)
+                redditClient.me().inbox().markRead(true, message.fullName)
+                commentCounter++
+
+                delay(Constants.delayBetweenComments)
+            }
 
             for (post in newPosts) {
                 if (commentCounter >= Constants.maxCommentsPerCheck) {
@@ -121,11 +163,11 @@ fun runBot() {
                     }
 
                     val actualReply = if (relatedReply != null) {
-                        logger.info("Replied to post '${post.title}' with related answer...")
+                        logger.info("Replying to post ${post.id} ('${post.title}') with related answer...")
                         relatedReply
                     } else {
                         markovChain.generateSequence().joinToString(" ").also {
-                            logger.info("Default replied to post '${post.title}'...")
+                            logger.info("Default replied to post ${post.id} ('${post.title}')...")
                         }
                     }
 
@@ -152,11 +194,11 @@ fun runBot() {
                     }
 
                     val actualReply = if (relatedReply != null) {
-                        logger.info("Replying to comment '${comment.body}' with related answer...")
+                        logger.info("Replying to comment ${comment.id} ('${comment.body}') with related answer...")
                         relatedReply
                     } else {
                         markovChain.generateSequence().joinToString(" ").also {
-                            logger.info("Default replying to post '${comment.body}'...")
+                            logger.info("Default replying to comment ${comment.id} ('${comment.body}')...")
                         }
                     }
 
