@@ -70,7 +70,7 @@ fun runBot() {
 
     logger.info("Connected to Reddit.")
 
-    val forsenSubreddit = redditClient.subreddit("forsen")
+    val activeSubreddit = redditClient.subreddit(Constants.activeSubreddit)
 
     var alreadyProcessedPostIds = listOf<String>()
     var alreadyProcessedCommentsIds = listOf<String>()
@@ -81,80 +81,50 @@ fun runBot() {
 
     fixedRateTimer(period = Constants.checkInterval.inWholeMilliseconds) {
         botCoroutineScope.launch {
-            val newInboxMessages = redditClient.me()
-                .inbox()
-                .iterate("unread")
-                .build()
-                .accumulateMerged(1)
-                .filter { it.subject == "username mention" }
+            try {
+                val newInboxMessages = redditClient.me()
+                    .inbox()
+                    .iterate("unread")
+                    .build()
+                    .accumulateMerged(1)
+                    .filter { it.subject == "username mention" }
 
-            val newPosts = forsenSubreddit.posts()
-                .sorting(SubredditSort.NEW)
-                .limit(10)
-                .build()
-                .accumulateMerged(1)
-                .filter { it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) && it.id !in alreadyProcessedPostIds }
+                val newPosts = activeSubreddit.posts()
+                    .sorting(SubredditSort.NEW)
+                    .limit(10)
+                    .build()
+                    .accumulateMerged(1)
+                    .filter { it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) && it.id !in alreadyProcessedPostIds }
 
-            val newComments = forsenSubreddit.comments()
-                .limit(100)
-                .build()
-                .accumulateMerged(1)
-                .filter { it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) && it.id !in alreadyProcessedCommentsIds }
-
-            logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
-
-            alreadyProcessedPostIds = newPosts.map { it.id }
-            alreadyProcessedCommentsIds = newComments.map { it.id }
-
-            var commentCounter = 0
-
-            for (message in newInboxMessages) {
-                if (commentCounter >= Constants.maxCommentsPerCheck) {
-                    logger.warn("Hit comment limit, not posting any more replies.")
-                    return@launch
-                }
-
-                if (!message.isComment) {
-                    logger.warn("Username mention with id ${message.id} was not a comment, skipping...")
-                    return@launch
-                }
-
-                val wordsInTitle = message.body.lowercase().split(Constants.wordSeparatorRegex)
-
-                val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
-                    tryGeneratingReplyFromWords(markovChain, wordsInTitle)
-                } else {
-                    null
-                }
-
-                val actualReply = if (relatedReply != null) {
-                    logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
-                    relatedReply
-                } else {
-                    markovChain.generateSequence().joinToString(" ").also {
-                        logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
+                val newComments = activeSubreddit.comments()
+                    .limit(100)
+                    .build()
+                    .accumulateMerged(1)
+                    .filter {
+                        it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) &&
+                        it.id !in alreadyProcessedCommentsIds &&
+                        it.id !in newInboxMessages.filter { message -> message.subreddit == Constants.activeSubreddit }.map { message -> message.id }
                     }
-                }
 
-                redditClient.comment(message.id).safeReply(actualReply)
-                redditClient.me().inbox().markRead(true, message.fullName)
-                commentCounter++
+                logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
 
-                delay(Constants.delayBetweenComments)
-            }
+                alreadyProcessedPostIds = newPosts.map { it.id }
+                alreadyProcessedCommentsIds = newComments.map { it.id }
 
-            for (post in newPosts) {
-                if (commentCounter >= Constants.maxCommentsPerCheck) {
-                    logger.warn("Hit comment limit, not posting any more replies.")
-                    return@launch
-                }
+                var commentCounter = 0
 
-                if (post.isRemoved) {
-                    continue
-                }
+                for (message in newInboxMessages) {
+                    if (commentCounter >= Constants.maxCommentsPerCheck) {
+                        logger.warn("Hit comment limit, not posting any more replies.")
+                        return@launch
+                    }
 
-                if ("markov" in post.title.lowercase()) {
-                    val wordsInTitle = post.title.lowercase().split(Constants.wordSeparatorRegex)
+                    if (!message.isComment) {
+                        logger.warn("Username mention with id ${message.id} was not a comment, skipping...")
+                        return@launch
+                    }
+
+                    val wordsInTitle = message.body.lowercase().split(Constants.wordSeparatorRegex)
 
                     val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
                         tryGeneratingReplyFromWords(markovChain, wordsInTitle)
@@ -163,50 +133,88 @@ fun runBot() {
                     }
 
                     val actualReply = if (relatedReply != null) {
-                        logger.info("Replying to post ${post.id} ('${post.title}') with related answer...")
+                        logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
                         relatedReply
                     } else {
                         markovChain.generateSequence().joinToString(" ").also {
-                            logger.info("Default replied to post ${post.id} ('${post.title}')...")
+                            logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
                         }
                     }
 
-                    post.toReference(redditClient).safeReply(actualReply)
+                    redditClient.comment(message.id).safeReply(actualReply)
+                    redditClient.me().inbox().markRead(true, message.fullName)
                     commentCounter++
 
                     delay(Constants.delayBetweenComments)
                 }
-            }
 
-            for (comment in newComments) {
-                if (commentCounter >= Constants.maxCommentsPerCheck) {
-                    logger.warn("Hit comment limit, not posting any more replies.")
-                    return@launch
-                }
-
-                if ("markov" in comment.body.lowercase()) {
-                    val wordsInComment = comment.body.lowercase().split(Constants.wordSeparatorRegex)
-
-                    val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
-                        tryGeneratingReplyFromWords(markovChain, wordsInComment)
-                    } else {
-                        null
+                for (post in newPosts) {
+                    if (commentCounter >= Constants.maxCommentsPerCheck) {
+                        logger.warn("Hit comment limit, not posting any more replies.")
+                        return@launch
                     }
 
-                    val actualReply = if (relatedReply != null) {
-                        logger.info("Replying to comment ${comment.id} ('${comment.body}') with related answer...")
-                        relatedReply
-                    } else {
-                        markovChain.generateSequence().joinToString(" ").also {
-                            logger.info("Default replying to comment ${comment.id} ('${comment.body}')...")
+                    if (post.isRemoved) {
+                        continue
+                    }
+
+                    if ("markov" in post.title.lowercase()) {
+                        val wordsInTitle = post.title.lowercase().split(Constants.wordSeparatorRegex)
+
+                        val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
+                            tryGeneratingReplyFromWords(markovChain, wordsInTitle)
+                        } else {
+                            null
                         }
+
+                        val actualReply = if (relatedReply != null) {
+                            logger.info("Replying to post ${post.id} ('${post.title}') with related answer...")
+                            relatedReply
+                        } else {
+                            markovChain.generateSequence().joinToString(" ").also {
+                                logger.info("Default replied to post ${post.id} ('${post.title}')...")
+                            }
+                        }
+
+                        post.toReference(redditClient).safeReply(actualReply)
+                        commentCounter++
+
+                        delay(Constants.delayBetweenComments)
+                    }
+                }
+
+                for (comment in newComments) {
+                    if (commentCounter >= Constants.maxCommentsPerCheck) {
+                        logger.warn("Hit comment limit, not posting any more replies.")
+                        return@launch
                     }
 
-                    comment.toReference(redditClient).safeReply(actualReply)
-                    commentCounter++
+                    if ("markov" in comment.body.lowercase()) {
+                        val wordsInComment = comment.body.lowercase().split(Constants.wordSeparatorRegex)
 
-                    delay(Constants.delayBetweenComments)
+                        val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
+                            tryGeneratingReplyFromWords(markovChain, wordsInComment)
+                        } else {
+                            null
+                        }
+
+                        val actualReply = if (relatedReply != null) {
+                            logger.info("Replying to comment ${comment.id} ('${comment.body}') with related answer...")
+                            relatedReply
+                        } else {
+                            markovChain.generateSequence().joinToString(" ").also {
+                                logger.info("Default replying to comment ${comment.id} ('${comment.body}')...")
+                            }
+                        }
+
+                        comment.toReference(redditClient).safeReply(actualReply)
+                        commentCounter++
+
+                        delay(Constants.delayBetweenComments)
+                    }
                 }
+            } catch (e: Exception) {
+                logger.error("Error while running timer loop:", e)
             }
         }
     }
