@@ -1,7 +1,4 @@
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
@@ -13,6 +10,7 @@ import net.dean.jraw.oauth.OAuthHelper
 import net.dean.jraw.references.PublicContributionReference
 import java.time.Instant
 import kotlin.concurrent.fixedRateTimer
+import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
@@ -105,7 +103,7 @@ fun runBot() {
                         it.id !in alreadyProcessedCommentsIds &&
                         it.id !in newInboxMessages.filter { message -> message.subreddit == Constants.activeSubreddit }.map { message -> message.id }
                     }
-
+                
                 logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
 
                 alreadyProcessedPostIds = newPosts.map { it.id }
@@ -187,6 +185,10 @@ fun runBot() {
                     if (commentCounter >= Constants.maxCommentsPerCheck) {
                         logger.warn("Hit comment limit, not posting any more replies.")
                         return@launch
+                    }
+
+                    if (comment.id in newInboxMessages.map { it.id }) {
+                        continue
                     }
 
                     if ("markov" in comment.body.lowercase()) {

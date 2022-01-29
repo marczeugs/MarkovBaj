@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "marczeugs"
-version = "2.2"
+version = "2.3"
 
 buildscript {
     dependencies {
