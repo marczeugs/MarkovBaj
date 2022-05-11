@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "marczeugs"
-version = "2.4"
+version = "2.4.1"
 
 repositories {
     mavenCentral()

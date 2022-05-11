@@ -74,7 +74,7 @@ fun main() {
                     .accumulateMerged(1)
                     .filter {
                         it.subject == "username mention" ||
-                        it.subject.startsWith("comment reply") && "u/${Constants.redditUserName}".lowercase() in it.body.lowercase() && it.subreddit != Constants.activeSubreddit
+                        it.subject.startsWith("comment reply") && Constants.redditUserName.lowercase() in it.body.lowercase() && it.subreddit != Constants.activeSubreddit
                     }
 
                 val newPosts = activeSubreddit.posts()
