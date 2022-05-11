@@ -2,6 +2,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 object Constants {
+    const val redditUserName = "MarkovBaj"
     const val activeSubreddit = "forsen"
     const val markovChainGenerationValues = 2
     val wordSeparatorRegex = Regex("\\s+")

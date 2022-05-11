@@ -1,4 +1,7 @@
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
@@ -10,40 +13,24 @@ import net.dean.jraw.oauth.OAuthHelper
 import net.dean.jraw.references.PublicContributionReference
 import java.time.Instant
 import kotlin.concurrent.fixedRateTimer
-import kotlin.system.exitProcess
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 import kotlin.time.toJavaDuration
 
 val logger = KotlinLogging.logger("MarkovBaj")
 
-object MarkovBaj {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        runBot()
-    }
-}
-
-fun runBot() {
+fun main() {
     val json = Json {
         ignoreUnknownKeys = true
     }
 
     val markovChain = MarkovChain<String>(Constants.markovChainGenerationValues)
-    val chainIgnoreTerms = listOf("markov")
 
     logger.info("Building Markov chain...")
 
     val chainBuildTime = measureTime {
         val messages = json.decodeFromStream<List<String>>(MarkovChain::class.java.getResourceAsStream("data.json")!!)
-
-        markovChain.addData(
-            messages.map { message ->
-                message.split(Constants.wordSeparatorRegex).filter { word ->
-                    chainIgnoreTerms.none { it in word }
-                }
-            }
-        )
+        markovChain.addData(messages.map { message -> message.split(Constants.wordSeparatorRegex) })
     }
 
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
@@ -59,7 +46,7 @@ fun runBot() {
         platform = "JVM/JRAW",
         appId = "MarkovBaj",
         version = BuildInfo.version,
-        redditUsername = "MarkovBaj"
+        redditUsername = Constants.redditUserName
     )
 
     val redditClient = OAuthHelper.automatic(OkHttpNetworkAdapter(userAgent), redditBotCredentials).apply {
@@ -85,7 +72,10 @@ fun runBot() {
                     .iterate("unread")
                     .build()
                     .accumulateMerged(1)
-                    .filter { it.subject == "username mention" }
+                    .filter {
+                        it.subject == "username mention" ||
+                        it.subject.startsWith("comment reply") && "u/${Constants.redditUserName}".lowercase() in it.body.lowercase() && it.subreddit != Constants.activeSubreddit
+                    }
 
                 val newPosts = activeSubreddit.posts()
                     .sorting(SubredditSort.NEW)
