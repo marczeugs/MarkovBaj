@@ -112,7 +112,7 @@ fun main() {
                         return@launch
                     }
 
-                    val wordsInTitle = message.body.lowercase().split(Constants.wordSeparatorRegex)
+                    val wordsInTitle = message.body.split(Constants.wordSeparatorRegex)
 
                     val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
                         tryGeneratingReplyFromWords(markovChain, wordsInTitle)
@@ -146,8 +146,8 @@ fun main() {
                         continue
                     }
 
-                    if ("markov" in post.title.lowercase()) {
-                        val wordsInTitle = post.title.lowercase().split(Constants.wordSeparatorRegex)
+                    if (Constants.redditUserName.lowercase() in post.title.lowercase()) {
+                        val wordsInTitle = post.title.split(Constants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInTitle)
@@ -181,8 +181,8 @@ fun main() {
                         continue
                     }
 
-                    if ("markov" in comment.body.lowercase()) {
-                        val wordsInComment = comment.body.lowercase().split(Constants.wordSeparatorRegex)
+                    if (Constants.redditUserName.lowercase() in comment.body.lowercase()) {
+                        val wordsInComment = comment.body.split(Constants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInComment)
@@ -214,7 +214,7 @@ fun main() {
 
 fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>): String? {
     words.windowed(Constants.markovChainGenerationValues).shuffled().forEach { potentialChainStart ->
-        if (potentialChainStart in markovChain.chainStarts.weightMap.keys) {
+        if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
             return markovChain.generateSequence(start = potentialChainStart).joinToString(" ")
         }
     }
