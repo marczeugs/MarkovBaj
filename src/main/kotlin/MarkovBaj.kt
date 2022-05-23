@@ -74,7 +74,7 @@ fun main() {
                     .accumulateMerged(1)
                     .filter {
                         it.subject == "username mention" ||
-                        it.subject.startsWith("comment reply") && Constants.redditUserName.lowercase() in it.body.lowercase() && it.subreddit != Constants.activeSubreddit
+                        it.subject.startsWith("comment reply") && Constants.triggerKeyword.lowercase() in it.body.lowercase() && it.subreddit != Constants.activeSubreddit
                     }
 
                 val newPosts = activeSubreddit.posts()
@@ -146,7 +146,7 @@ fun main() {
                         continue
                     }
 
-                    if (Constants.redditUserName.lowercase() in post.title.lowercase()) {
+                    if (Constants.triggerKeyword.lowercase() in post.title.lowercase()) {
                         val wordsInTitle = post.title.split(Constants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
@@ -181,7 +181,7 @@ fun main() {
                         continue
                     }
 
-                    if (Constants.redditUserName.lowercase() in comment.body.lowercase()) {
+                    if (Constants.triggerKeyword.lowercase() in comment.body.lowercase()) {
                         val wordsInComment = comment.body.split(Constants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > Constants.unrelatedAnswerChance) {
