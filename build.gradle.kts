@@ -38,6 +38,8 @@ tasks.processResources {
 }
 
 dependencies {
+    val ktorVersion = "2.0.2"
+
     implementation("org.jetbrains.kotlin:kotlin-reflect:1.6.21")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
@@ -49,4 +51,11 @@ dependencies {
     implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
     implementation("org.slf4j:slf4j-api:1.7.36")
     implementation("org.slf4j:slf4j-simple:1.7.36")
+
+    implementation(kotlin("script-runtime"))
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-logging:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
 }
