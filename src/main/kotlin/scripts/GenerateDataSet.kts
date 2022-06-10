@@ -29,6 +29,11 @@ data class CommentsResponse(
     )
 }
 
+sealed interface MessageExclusionCriteria {
+    data class String(val value: kotlin.String) : MessageExclusionCriteria
+    data class Regex(val value: kotlin.text.Regex) : MessageExclusionCriteria
+}
+
 
 val filteredAuthors = listOf(
     Constants.redditUserName.lowercase(),
@@ -36,21 +41,41 @@ val filteredAuthors = listOf(
 )
 
 val replacedParts = mapOf(
-    Regex("(?:^|\\s)*${Constants.triggerKeyword}(?:\$|\\s)*", RegexOption.IGNORE_CASE) to "", // Bot mentions
-    Regex("(?:^|\\s)?:\\d+:(?:\$|\\s)?", RegexOption.IGNORE_CASE) to "", // Emotes
+    Regex("(?:^|\\s)*${Constants.triggerKeyword}(?:$|\\s)*", RegexOption.IGNORE_CASE) to "", // Bot mentions
+    Regex("(?:^|\\s)?:\\d+:(?:$|\\s)?", RegexOption.IGNORE_CASE) to " ", // Emotes
     Regex("&amp;#x200B;", RegexOption.IGNORE_CASE) to "\u200b", // Weird stuff with zero width spaces
     Regex("!?\\[(?:img|gif)]\\(.+\\)", RegexOption.IGNORE_CASE) to "", // Remove emotes and images
     Regex("\\n", RegexOption.IGNORE_CASE) to "", // Remove line breaks, handling them is just a pain
 )
 
 val messageExclusionCriteriaWordParts = listOf(
-    "igg",
-    "ike",
-    "trann",
-    "14/88",
-    "1488",
-    "kfc",
-    "watermelon",
+    MessageExclusionCriteria.String("neg"),
+    MessageExclusionCriteria.String("ike"),
+    MessageExclusionCriteria.String("tran"),
+    MessageExclusionCriteria.String("14"),
+    MessageExclusionCriteria.String("88"),
+    MessageExclusionCriteria.String("kfc"),
+    MessageExclusionCriteria.String("melon"),
+    MessageExclusionCriteria.String("black"),
+    MessageExclusionCriteria.String("white"),
+    MessageExclusionCriteria.String("afric"),
+    MessageExclusionCriteria.String("migra"),
+    MessageExclusionCriteria.String("crack"),
+    MessageExclusionCriteria.String("kill"),
+    MessageExclusionCriteria.String("uicid"),
+    MessageExclusionCriteria.String("murd"),
+    MessageExclusionCriteria.String("etar"),
+    MessageExclusionCriteria.String("underag"),
+    MessageExclusionCriteria.String("gun"),
+    MessageExclusionCriteria.String("jew"),
+    MessageExclusionCriteria.String("semit"),
+    MessageExclusionCriteria.String("gender"),
+    MessageExclusionCriteria.Regex(Regex("n.?word", RegexOption.IGNORE_CASE)),
+    MessageExclusionCriteria.Regex(Regex("shoo?t", RegexOption.IGNORE_CASE)),
+    MessageExclusionCriteria.Regex(Regex("self.?harm", RegexOption.IGNORE_CASE)),
+    MessageExclusionCriteria.Regex(Regex("\\brac(?:e\\b|is)", RegexOption.IGNORE_CASE)),
+    MessageExclusionCriteria.Regex(Regex("hate (?:th|ni|'?em)", RegexOption.IGNORE_CASE)),
+    MessageExclusionCriteria.Regex(Regex("\\bni(?:g|$|[^a-z])", RegexOption.IGNORE_CASE)),
 )
 
 val json = Json {
@@ -67,7 +92,7 @@ val client = HttpClient(CIO) {
 
 val urlTemplate = "https://api.pushshift.io/reddit/search/comment/?subreddit=forsen&size=500&before="
 
-val maxJsonSize = 20 * 1024 * 1024 // 20 MiB
+val maxJsonSize = 10 * 1024 * 1024 // 10 MiB
 
 
 var lastTimestamp = System.currentTimeMillis() / 1000
@@ -88,7 +113,12 @@ runBlocking {
 
             val filteredComments = nextComments.filter { comment ->
                     comment.author.lowercase() !in filteredAuthors
-                    && messageExclusionCriteriaWordParts.none { it in comment.body.lowercase() }
+                    && messageExclusionCriteriaWordParts.none {
+                        when (it) {
+                            is MessageExclusionCriteria.String -> it.value in comment.body.lowercase()
+                            is MessageExclusionCriteria.Regex -> it.value.containsMatchIn(comment.body.lowercase())
+                        }
+                    }
                     && !comment.locked
                 }
                 .map { comment ->
