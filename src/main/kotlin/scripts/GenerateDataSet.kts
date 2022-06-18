@@ -1,3 +1,6 @@
+package scripts
+
+import Constants
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -72,6 +75,8 @@ val messageExclusionCriteriaWordParts = listOf(
     MessageExclusionCriteria.String("gender"),
     MessageExclusionCriteria.String("fag"),
     MessageExclusionCriteria.String("minor"),
+    MessageExclusionCriteria.String("lgb"),
+    MessageExclusionCriteria.String("sex"),
     MessageExclusionCriteria.Regex(Regex("n.?word", RegexOption.IGNORE_CASE)),
     MessageExclusionCriteria.Regex(Regex("shoo?t", RegexOption.IGNORE_CASE)),
     MessageExclusionCriteria.Regex(Regex("self.?harm", RegexOption.IGNORE_CASE)),

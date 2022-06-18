@@ -97,7 +97,7 @@ fun main() {
                 logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
 
                 alreadyProcessedPostIds = newPosts.map { it.id }
-                alreadyProcessedCommentsIds = newComments.map { it.id }
+                alreadyProcessedCommentsIds = newInboxMessages.map { it.id }.union(newComments.map { it.id }).toList()
 
                 var commentCounter = 0
 
