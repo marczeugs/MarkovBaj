@@ -28,7 +28,7 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                   tag_name: MarkovBaj-${{ steps.get_version.outputs.VERSION }}
-                  release_name: Release MarkovBaj-${{ steps.get_version.outputs.VERSION }}
+                  release_name: MarkovBaj ${{ steps.get_version.outputs.VERSION }}
                   draft: false
                   prerelease: false
             - name: Build with Gradle
