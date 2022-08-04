@@ -53,6 +53,9 @@ val replacedParts = mapOf(
 
 val messageExclusionCriteriaWordParts = listOf(
     MessageExclusionCriteria.String("neg"),
+    MessageExclusionCriteria.String("nek"),
+    MessageExclusionCriteria.String("sie"),
+    MessageExclusionCriteria.String("hei"),
     MessageExclusionCriteria.String("ike"),
     MessageExclusionCriteria.String("tran"),
     MessageExclusionCriteria.String("14"),

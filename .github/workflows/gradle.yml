@@ -1,0 +1,47 @@
+name: Java CI with Gradle
+
+on:
+    push:
+        branches: [ "main" ]
+    pull_request:
+        branches: [ "main" ]
+
+jobs:
+    build:
+
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Set up JDK 11
+              uses: actions/setup-java@v3
+              with:
+                  java-version: '11'
+                  distribution: 'temurin'
+            - name: Get Release Version
+              id: get_version
+              run: VERSION=$(gradle properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}') && echo ::set-output name=VERSION::$VERSION
+            - name: Create Release
+              id: create_release
+              uses: actions/create-release@v1.0.0
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  tag_name: MarkovBaj-${{ steps.get_version.outputs.VERSION }}
+                  release_name: Release MarkovBaj-${{ steps.get_version.outputs.VERSION }}
+                  draft: false
+                  prerelease: false
+            - name: Build with Gradle
+              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              with:
+                  arguments: build
+            - name: Upload Release Asset (jar)
+              id: upload-release-asset
+              uses: actions/upload-release-asset@v1
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                  upload_url: ${{ steps.create_release.outputs.upload_url }}
+                  asset_path: ./build/libs/MarkovBaj-${{ steps.get_version.outputs.VERSION }}-all.jar
+                  asset_name: MarkovBaj-${{ steps.get_version.outputs.VERSION }}-all.jar
+                  asset_content_type: application/octet-stream
