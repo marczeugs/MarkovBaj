@@ -80,6 +80,7 @@ val messageExclusionCriteriaWordParts = listOf(
     MessageExclusionCriteria.String("minor"),
     MessageExclusionCriteria.String("lgb"),
     MessageExclusionCriteria.String("sex"),
+    MessageExclusionCriteria.String("kys"),
     MessageExclusionCriteria.Regex(Regex("n.?word", RegexOption.IGNORE_CASE)),
     MessageExclusionCriteria.Regex(Regex("shoo?t", RegexOption.IGNORE_CASE)),
     MessageExclusionCriteria.Regex(Regex("self.?harm", RegexOption.IGNORE_CASE)),

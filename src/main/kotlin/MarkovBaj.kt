@@ -2,6 +2,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
@@ -11,11 +13,9 @@ import net.dean.jraw.models.SubredditSort
 import net.dean.jraw.oauth.Credentials
 import net.dean.jraw.oauth.OAuthHelper
 import net.dean.jraw.references.PublicContributionReference
-import java.time.Instant
 import kotlin.concurrent.fixedRateTimer
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
-import kotlin.time.toJavaDuration
 
 val logger = KotlinLogging.logger("MarkovBaj")
 
@@ -36,17 +36,17 @@ fun main() {
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
 
     val redditBotCredentials = Credentials.script(
-        username = System.getenv("markovbaj_username"),
-        password = System.getenv("markovbaj_password"),
-        clientId = System.getenv("markovbaj_clientid"),
-        clientSecret = System.getenv("markovbaj_clientsecret")
+        username = RuntimeVariables.botRedditUsername,
+        password = RuntimeVariables.botRedditPassword,
+        clientId = RuntimeVariables.botRedditClientId,
+        clientSecret = RuntimeVariables.botRedditClientSecret
     )
 
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
         appId = "MarkovBaj",
         version = BuildInfo.version,
-        redditUsername = Constants.redditUserName
+        redditUsername = "the_marcster"
     )
 
     val redditClient = OAuthHelper.automatic(OkHttpNetworkAdapter(userAgent), redditBotCredentials).apply {
@@ -54,6 +54,8 @@ fun main() {
     }
 
     logger.info("Connected to Reddit.")
+
+    setupJanitorBackendServer(redditClient, json)
 
     val activeSubreddit = redditClient.subreddit(Constants.activeSubreddit)
 
@@ -82,14 +84,14 @@ fun main() {
                     .limit(10)
                     .build()
                     .accumulateMerged(1)
-                    .filter { it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) && it.id !in alreadyProcessedPostIds }
+                    .filter { it.created.toInstant().toKotlinInstant() > Clock.System.now() - Constants.checkInterval * 2 && it.id !in alreadyProcessedPostIds }
 
                 val newComments = activeSubreddit.comments()
                     .limit(100)
                     .build()
                     .accumulateMerged(1)
                     .filter {
-                        it.created.toInstant().isAfter(Instant.now().minus(Constants.checkInterval.toJavaDuration().multipliedBy(2))) &&
+                        it.created.toInstant().toKotlinInstant() > Clock.System.now() - Constants.checkInterval * 2 &&
                         it.id !in alreadyProcessedCommentsIds &&
                         it.id !in newInboxMessages.filter { message -> message.subreddit == Constants.activeSubreddit }.map { message -> message.id }
                     }
@@ -215,7 +217,7 @@ fun main() {
 fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>): String? {
     words.windowed(Constants.markovChainGenerationValues).shuffled().forEach { potentialChainStart ->
         if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
-            return markovChain.generateSequence(start = potentialChainStart).joinToString(" ")
+            return markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
         }
     }
 
@@ -224,7 +226,7 @@ fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<St
 }
 
 fun PublicContributionReference.safeReply(text: String) {
-    if (System.getenv("markovbaj_actuallysendreplies") == "true") {
+    if (RuntimeVariables.botActuallySendReplies) {
         try {
             reply(text)
             logger.info("Replied with '$text'.")
