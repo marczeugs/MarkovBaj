@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "marczeugs"
-version = "2.5.0"
+version = "2.5.1"
 
 repositories {
     mavenCentral()
@@ -36,7 +36,7 @@ tasks.compileKotlin {
 }
 
 tasks.processResources {
-    filesMatching("buildinfo.properties j") {
+    filesMatching("buildinfo.properties") {
         expand(project.properties)
     }
 }

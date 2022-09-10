@@ -21,7 +21,10 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.html.*
-import kotlinx.serialization.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.dean.jraw.RedditClient
 import net.dean.jraw.http.OkHttpNetworkAdapter
@@ -124,6 +127,7 @@ fun setupJanitorBackendServer(markovRedditClient: RedditClient, json: Json) {
             get<Routes.Index> {
                 call.respondHtml {
                     head {
+                        title("MarkovBaj Janitor Backend Login")
                         styleLink("/styles.css")
                     }
 
@@ -180,6 +184,7 @@ fun setupJanitorBackendServer(markovRedditClient: RedditClient, json: Json) {
 
                 call.respondHtml {
                     head {
+                        title("MarkovBaj Janitor Backend")
                         styleLink("/styles.css")
                     }
 
@@ -243,8 +248,13 @@ fun setupJanitorBackendServer(markovRedditClient: RedditClient, json: Json) {
                         return@get
                     }
 
+                    if (commentToDelete.author.lowercase() != Constants.redditUserName.lowercase()) {
+                        call.respondText("Comment was not posted by authenticated account.", status = HttpStatusCode.BadRequest)
+                        return@get
+                    }
+
                     markovRedditClient.comment(pathSegments[6]).delete()
-                    logger.info { "Comment '${pathSegments[6]}' at '${deleteCommentRequest.commentLink}' with content '${commentToDelete.body}' was deleted by user '${userRedditClientName}'." }
+                    logger.info { "Comment '${pathSegments[6]}' at '${deleteCommentRequest.commentLink}' with the content '${commentToDelete.body}' was deleted by user '${userRedditClientName}'." }
                     call.respondText("Comment was deleted.")
                 } catch (e: Exception) {
                     call.respondText("Invalid comment URL.", status = HttpStatusCode.BadRequest)
@@ -297,6 +307,7 @@ fun setupJanitorBackendServer(markovRedditClient: RedditClient, json: Json) {
 private suspend fun ApplicationCall.respondReturnToLogin() {
     respondHtml {
         head {
+            title("Invalid Reddit Login")
             styleLink("/styles.css")
         }
 
