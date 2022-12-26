@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     val kotlinVersion: String by System.getProperties()
 
@@ -44,8 +46,12 @@ kotlin {
     sourceSets {
         all {
             languageSettings.apply {
+                languageVersion = "1.8"
+
                 optIn("kotlinx.serialization.ExperimentalSerializationApi")
                 optIn("kotlin.time.ExperimentalTime")
+                optIn("kotlin.ExperimentalStdlibApi")
+                optIn("org.jetbrains.compose.web.ExperimentalComposeWebApi")
             }
         }
 
@@ -98,6 +104,7 @@ kotlin {
                 implementation("io.ktor:ktor-server-sessions-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-server-resources-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-server-auth-jvm:$ktorVersion")
+                implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-client-core-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-client-apache-jvm:$ktorVersion")
 

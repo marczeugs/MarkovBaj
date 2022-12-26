@@ -2,9 +2,8 @@
 
 package scripts
 
-import Hash
+import CommonConstants
 import MarkovChain
-import Word
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -20,13 +19,19 @@ fun main() {
         ignoreUnknownKeys = true
     }
 
-    val markovChain = json.decodeFromStream<MarkovChain<Word, Hash>>(MarkovChain::class.java.getResourceAsStream("data.json")!!)
+    val markovChain = MarkovChain<String>(CommonConstants.consideredValuesForGeneration)
 
-    val sequenceGenerationTime = measureTime {
-        repeat(100) {
-            logger.info(markovChain.generateSequence().joinToString(" ") { it.word })
-        }
+    logger.info("Building Markov chain...")
+
+    val chainBuildTime = measureTime {
+        val messages = json.decodeFromStream<List<String>>(MarkovChain::class.java.getResourceAsStream("data.json")!!)
+        markovChain.addData(messages.map { message -> message.split(CommonConstants.wordSeparatorRegex) })
+        println(messages.size)
     }
 
-    logger.info("Generating 100 sequences took ${sequenceGenerationTime.toDouble(DurationUnit.SECONDS)}s.")
+    logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
+
+    repeat(100) {
+        logger.info(markovChain.generateSequence().joinToString(" "))
+    }
 }

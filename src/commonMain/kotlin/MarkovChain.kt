@@ -1,15 +1,21 @@
-sealed interface MarkovChain<ContentType, HashType> {
-    val consideredValuesForGeneration: Int
-    val chainStarts: WeightedSet<List<HashType>>
-    val followingValues: Map<List<HashType>, WeightedSet<HashType>>
+class MarkovChain<T>(private val consideredValuesForGeneration: Int) {
+    val chainStarts = WeightedSet<List<T>>()
+    private val followingValues = mutableMapOf<List<T>, WeightedSet<T>>()
 
-    fun hashTransformation(value: ContentType): HashType
-    fun contentTransformation(hash: HashType): ContentType
+    fun addData(data: List<List<T>>) {
+        chainStarts.addData(data.map { it.take(consideredValuesForGeneration) })
 
-    fun generateSequence(
-        start: List<ContentType> = chainStarts.randomValue().map { contentTransformation(it) },
-        maxLength: Int = 100.coerceAtLeast(consideredValuesForGeneration)
-    ): List<ContentType> {
+        data.forEach { sequence ->
+            sequence.windowed(consideredValuesForGeneration + 1).forEach {
+                val consideredValues = it.dropLast(1)
+                val generatedValue = it.takeLast(1)
+
+                followingValues.getOrPut(consideredValues) { WeightedSet() }.addData(generatedValue)
+            }
+        }
+    }
+
+    fun generateSequence(start: List<T> = chainStarts.randomValue(), maxLength: Int = 100.coerceAtLeast(consideredValuesForGeneration)): List<T> {
         require(maxLength >= consideredValuesForGeneration) {
             "Max length must be at least as large as the number of considered values. Is ${maxLength}, should be >= $consideredValuesForGeneration"
         }
@@ -19,12 +25,10 @@ sealed interface MarkovChain<ContentType, HashType> {
         }
 
         val generatedValues = start.toMutableList()
-        val generatedHashedValues = start.map { hashTransformation(it) }.toMutableList()
 
         for (index in start.size until maxLength) {
-            followingValues[generatedHashedValues.slice(index - consideredValuesForGeneration until index)]?.randomValue()?.let {
-                generatedValues.add(contentTransformation(it))
-                generatedHashedValues.add(it)
+            followingValues[generatedValues.slice(index - consideredValuesForGeneration until index)]?.randomValue()?.let {
+                generatedValues.add(it)
             } ?: break
         }
 

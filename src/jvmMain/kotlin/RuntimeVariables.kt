@@ -4,6 +4,8 @@ object RuntimeVariables {
     val botRedditClientId: String = System.getenv("markovbaj_clientid")
     val botRedditClientSecret: String = System.getenv("markovbaj_clientsecret")
     val botActuallySendReplies = System.getenv("markovbaj_actuallysendreplies") == "true"
+    val botAppId: String = System.getenv("markovbaj_appid")
+    val botAuthorRedditUsername: String = System.getenv("markovbaj_authorredditusername")
 
     val backendServerUrl: String = System.getenv("markovbaj_backend_serverurl")
     val backendServerPort = System.getenv("markovbaj_backend_serverport").toInt()

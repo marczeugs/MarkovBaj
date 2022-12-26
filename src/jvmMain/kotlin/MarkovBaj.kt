@@ -4,8 +4,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toKotlinInstant
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
 import net.dean.jraw.http.OkHttpNetworkAdapter
 import net.dean.jraw.http.UserAgent
@@ -15,20 +15,26 @@ import net.dean.jraw.oauth.OAuthHelper
 import net.dean.jraw.references.PublicContributionReference
 import java.io.File
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.DurationUnit
+import kotlin.time.measureTime
 
 val logger = KotlinLogging.logger("MarkovBaj")
 
 fun main() {
     val json = Json {
         ignoreUnknownKeys = true
-        allowStructuredMapKeys = true
     }
 
-    logger.info("Starting backend services...")
+    val markovChain = MarkovChain<String>(CommonConstants.consideredValuesForGeneration)
 
-    val markovChain = json.decodeFromString<MarkovWordChain>(File("data.json").readText())
+    logger.info("Building Markov chain...")
 
-    logger.info("Loaded Markov chain from file.")
+    val chainBuildTime = measureTime {
+        val messages = json.decodeFromStream<List<String>>(File("data.json").inputStream())
+        markovChain.addData(messages.map { message -> message.split(CommonConstants.wordSeparatorRegex) })
+    }
+
+    logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
 
     val redditBotCredentials = Credentials.script(
         username = RuntimeVariables.botRedditUsername,
@@ -39,9 +45,9 @@ fun main() {
 
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
-        appId = "MarkovBaj",
+        appId = RuntimeVariables.botAppId,
         version = BuildInfo.version,
-        redditUsername = "the_marcster"
+        redditUsername = RuntimeVariables.botAuthorRedditUsername
     )
 
     val redditClient = OAuthHelper.automatic(OkHttpNetworkAdapter(userAgent), redditBotCredentials).apply {
@@ -50,7 +56,7 @@ fun main() {
 
     logger.info("Connected to Reddit.")
 
-    setupJanitorBackendServer(redditClient, json)
+    setupBackendServer(redditClient, json, markovChain)
 
     val activeSubreddit = redditClient.subreddit(BotConstants.activeSubreddit)
 
@@ -71,7 +77,7 @@ fun main() {
                     .accumulateMerged(1)
                     .filter {
                         it.subject == "username mention" ||
-                        it.subject.startsWith("comment reply") && BotConstants.triggerKeyword.lowercase() in it.body.lowercase() && it.subreddit != BotConstants.activeSubreddit
+                        it.subject.startsWith("comment reply") && CommonConstants.triggerKeyword.lowercase() in it.body.lowercase() && it.subreddit != BotConstants.activeSubreddit
                     }
 
                 val newPosts = activeSubreddit.posts()
@@ -109,7 +115,7 @@ fun main() {
                         return@launch
                     }
 
-                    val wordsInTitle = message.body.split(BotConstants.wordSeparatorRegex).map { Word(it) }
+                    val wordsInTitle = message.body.split(CommonConstants.wordSeparatorRegex)
 
                     val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
                         tryGeneratingReplyFromWords(markovChain, wordsInTitle)
@@ -121,7 +127,7 @@ fun main() {
                         logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
                         relatedReply
                     } else {
-                        markovChain.generateSequence().joinToString(" ") { it.word }.also {
+                        markovChain.generateSequence().joinToString(" ").also {
                             logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
                         }
                     }
@@ -143,8 +149,8 @@ fun main() {
                         continue
                     }
 
-                    if (BotConstants.triggerKeyword.lowercase() in post.title.lowercase()) {
-                        val wordsInTitle = post.title.split(BotConstants.wordSeparatorRegex).map { Word(it) }
+                    if (CommonConstants.triggerKeyword.lowercase() in post.title.lowercase()) {
+                        val wordsInTitle = post.title.split(CommonConstants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInTitle)
@@ -156,7 +162,7 @@ fun main() {
                             logger.info("Replying to post ${post.id} ('${post.title}') with related answer...")
                             relatedReply
                         } else {
-                            markovChain.generateSequence().joinToString(" ") { it.word }.also {
+                            markovChain.generateSequence().joinToString(" ").also {
                                 logger.info("Default replied to post ${post.id} ('${post.title}')...")
                             }
                         }
@@ -178,8 +184,8 @@ fun main() {
                         continue
                     }
 
-                    if (BotConstants.triggerKeyword.lowercase() in comment.body.lowercase()) {
-                        val wordsInComment = comment.body.split(BotConstants.wordSeparatorRegex).map { Word(it) }
+                    if (CommonConstants.triggerKeyword.lowercase() in comment.body.lowercase()) {
+                        val wordsInComment = comment.body.split(CommonConstants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInComment)
@@ -191,7 +197,7 @@ fun main() {
                             logger.info("Replying to comment ${comment.id} ('${comment.body}') with related answer...")
                             relatedReply
                         } else {
-                            markovChain.generateSequence().joinToString(" ") { it.word }.also {
+                            markovChain.generateSequence().joinToString(" ").also {
                                 logger.info("Default replying to comment ${comment.id} ('${comment.body}')...")
                             }
                         }
@@ -209,10 +215,10 @@ fun main() {
     }
 }
 
-private fun tryGeneratingReplyFromWords(markovChain: MarkovWordChain, words: List<Word>): String? {
-    words.windowed(markovChain.consideredValuesForGeneration).shuffled().forEach { potentialChainStart ->
-        if (markovChain.chainStarts.weightMap.keys.any { words -> words == potentialChainStart.map { markovChain.hashTransformation(it) } }) {
-            return markovChain.generateSequence(start = potentialChainStart).joinToString(" ") { it.word }.take(5000)
+private fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>): String? {
+    words.windowed(CommonConstants.consideredValuesForGeneration).shuffled().forEach { potentialChainStart ->
+        if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
+            return markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
         }
     }
 

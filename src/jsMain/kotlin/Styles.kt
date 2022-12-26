@@ -68,12 +68,50 @@ object Styles : StyleSheet() {
         }
     }
 
+    val chatContainer by style {
+        width(100.percent)
+        height(100.percent)
+        maxHeight(65.vh)
+        flexShrink(1)
+        position(Position.Relative)
+    }
+
+    val ttsMutedSettingContainer by style {
+        position(Position.Absolute)
+        top((-20).px)
+        right(50.px)
+    }
+
+    val chatBackground by style {
+        position(Position.Absolute)
+        left(20.px)
+        right(20.px)
+        top(20.px)
+        bottom(20.px)
+        backgroundColor(Color.lightgray)
+        property("z-index", -1)
+    }
+
+    val chatMessageBorderContainer by style {
+        width(100.percent)
+        height(100.percent)
+        display(DisplayStyle.Grid)
+        gridTemplateColumns("75px auto 75px")
+        gridTemplateRows("75px auto 75px")
+    }
+
     val chatMessageContainer by style {
         width(100.percent)
-        flex(1)
+        height(100.percent)
         display(DisplayStyle.Flex)
         flexDirection(FlexDirection.Column)
         overflow("scroll")
+        gridColumn("2")
+        gridRow("2")
+    }
+
+    val chatCorner by style {
+        width(100.percent)
     }
 
     val chatMessage by style {
@@ -84,6 +122,7 @@ object Styles : StyleSheet() {
         width("fit-content" as CSSNumeric)
         maxWidth(40.percent)
         fontSize(16.px)
+        property("word-wrap", "break-word")
     }
 
     val chatMessageMarkov by style {

@@ -1,10 +1,6 @@
 package scripts
 
 import CommonConstants
-import Hash
-import MarkovWordChain
-import WeightedSet
-import Word
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -12,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
 import kotlinx.coroutines.delay
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -44,7 +41,7 @@ private sealed interface MessageExclusionCriteria {
 
 suspend fun main() {
     val filteredAuthors = listOf(
-        CommonConstants.redditUserName.lowercase(),
+        System.getenv("markovbaj_username").lowercase(),
         "[deleted]",
     )
 
@@ -107,16 +104,12 @@ suspend fun main() {
         }
     }
 
-    val urlTemplate = "https://api.pushshift.io/reddit/search/comment/?subreddit=forsen&size=500&before="
-    val maxJsonSize = 1 * 1024 * 1024 // 10 MiB
-    val consideredValuesForGeneration = 2
+    val urlTemplate = "https://api.pushshift.io/reddit/search/comment?subreddit=forsen&size=500&before="
+    val maxJsonSize = 10 * 1024 * 1024 // 10 MiB
 
     val logger = KotlinLogging.logger("GenerateExampleValues.kts")
 
     val allFetchedComments = mutableListOf<CommentsResponse.Comment>()
-    val wordHashMap = mutableMapOf<Hash, Word>()
-    val chainStarts = WeightedSet<List<Hash>>()
-    val followingValues = mutableMapOf<List<Hash>, WeightedSet<Hash>>()
 
     var lastTimestamp = System.currentTimeMillis() / 1000
     var lastJsonOutput = ""
@@ -126,7 +119,8 @@ suspend fun main() {
         try {
             val nextComments = client.get(urlTemplate + lastTimestamp).body<CommentsResponse>().data
 
-            val filteredComments = nextComments.filter { comment ->
+            val filteredComments = nextComments
+                .filter { comment ->
                     comment.author.lowercase() !in filteredAuthors
                     && messageExclusionCriteriaWordParts.none {
                         when (it) {
@@ -149,52 +143,35 @@ suspend fun main() {
 
             allFetchedComments.addAll(filteredComments)
 
-            val wordsByComment = filteredComments.map { message -> message.body.split(CommonConstants.wordSeparatorRegex).map { Word(it) } }
+            lastJsonOutput = json.encodeToString(allFetchedComments.map { it.body })
 
-            wordHashMap += wordsByComment.flatten().distinct().associateBy { it.lowercaseHash }
-            chainStarts.addData(wordsByComment.map { words -> words.take(consideredValuesForGeneration).map { it.lowercaseHash } })
-
-            wordsByComment.forEach { sequence ->
-                sequence.map { it.lowercaseHash }.windowed(consideredValuesForGeneration + 1).forEach {
-                    val consideredValues = it.dropLast(1)
-                    val generatedValue = it.takeLast(1)
-
-                    followingValues.computeIfAbsent(consideredValues) { WeightedSet() }.addData(generatedValue)
-                }
-            }
-
-            val markovChain = MarkovWordChain(
-                consideredValuesForGeneration = CommonConstants.consideredValuesForGeneration,
-                wordHashMap = wordHashMap,
-                chainStarts = chainStarts,
-                followingValues = followingValues
-            )
-
-            lastJsonOutput = json.encodeToString(markovChain)
-
-            logger.info(
+            logger.info {
                 "Fetched ${filteredComments.size} comments before ${
                     DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(lastTimestamp))
                 }, total comments: ${allFetchedComments.size}, JSON string size: ${lastJsonOutput.length} / $maxJsonSize (${
                     lastJsonOutput.length.toFloat() / maxJsonSize * 100
                 }%)"
-            )
+            }
 
             lastTimestamp = nextComments.last().createdUtc
         } catch (e: Exception) {
-            logger.error("Unable to fetch comments before ${DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(lastTimestamp))}, retrying...", e)
-            File("data-error.json").writeText(lastJsonOutput)
+            logger.error { "Unable to fetch comments before ${DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochSecond(lastTimestamp))}, retrying..." }
+            save("data-error.json", lastJsonOutput)
         }
 
         if ((lastJsonOutput.length.toFloat() / maxJsonSize * 100).toInt() / 10 != last10PercentBarrier) {
             last10PercentBarrier = (lastJsonOutput.length.toFloat() / maxJsonSize * 100).toInt() / 10
-            File("data-${last10PercentBarrier * 10}.json").writeText(lastJsonOutput)
-            logger.info("Reached ${last10PercentBarrier * 10}%, saving backup...")
+            save("data-${last10PercentBarrier * 10}.json", lastJsonOutput)
+            logger.info { "Reached ${last10PercentBarrier * 10}%, saving backup..." }
         }
 
         delay(1.seconds)
     } while (lastJsonOutput.length < maxJsonSize)
 
-    File("data.json").writeText(lastJsonOutput)
-    logger.info("Fetched ${allFetchedComments.size} comments in total.")
+    save("data.json", lastJsonOutput)
+    logger.info { "Fetched ${allFetchedComments.size} comments in total." }
+}
+
+fun save(fileName: String, jsonOutput: String) {
+    File(fileName).writeText(jsonOutput)
 }

@@ -9,6 +9,7 @@ external class SpeechSynthesisUtterance(text: String)
 
 external class Audio(path: String) {
     fun play(): Promise<Unit>
+    fun pause()
     var onended: () -> Unit
 }
 
