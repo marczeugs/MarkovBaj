@@ -1,13 +1,18 @@
 import org.jetbrains.compose.web.css.*
 
 object Styles : StyleSheet() {
+    private val bodyPadding = 16.px
+
+
     val rootElement by style {
+        position(Position.Relative)
+
         width(100.percent)
         maxWidth(768.px)
         height(100.vh)
 
         margin("auto" as CSSNumeric)
-        padding(16.px)
+        padding(bodyPadding)
 
         display(DisplayStyle.Flex)
         flexDirection(FlexDirection.Column)
@@ -18,6 +23,54 @@ object Styles : StyleSheet() {
 
     val hidden by style {
         display(DisplayStyle.None)
+    }
+
+    val achievementsBoxContainer by style {
+        position(Position.Absolute)
+        display(DisplayStyle.Flex)
+        height(40.percent)
+        left(bodyPadding)
+        right(bodyPadding)
+        padding(16.px)
+        backgroundColor(Color("rgba(255, 128, 255, 0.7)"))
+        property("z-index", 1)
+        flexWrap(FlexWrap.Wrap)
+        property("place-content", "flex-start")
+        justifyContent(JustifyContent.SpaceBetween)
+    }
+
+    val achievementContainer by style {
+        display(DisplayStyle.Flex)
+        margin(8.px)
+        flexDirection(FlexDirection.Column)
+        width(96.px)
+    }
+
+    val achievementExplanation by style {
+        flexBasis(100.percent)
+        padding(16.px)
+        textAlign("justify")
+    }
+
+    val achievementIconContainer by style {
+        width(100.percent)
+        height(96.px)
+        borderRadius(8.px)
+        display(DisplayStyle.Flex)
+    }
+
+    val achievementIcon by style {
+        margin("auto" as CSSNumeric)
+        width(60.percent)
+        height(60.percent)
+    }
+
+    val achievementCaption by style {
+        width(100.percent)
+        paddingTop(8.px)
+        textAlign("center")
+        boxSizing("border-box")
+        property("word-wrap", "break-word")
     }
 
     val markovContainer by style {

@@ -38,16 +38,8 @@ fun ChatMessages(
         scrollHandler.scrollBy(0.0, 20000.0)
     }
 
-    Div(
-        attrs = {
-            classes(Styles.chatContainer)
-        }
-    ) {
-        Div(
-            attrs = {
-                classes(Styles.ttsMutedSettingContainer)
-            }
-        ) {
+    Div(attrs = { classes(Styles.chatContainer) }) {
+        Div(attrs = { classes(Styles.ttsMutedSettingContainer) }) {
             Span {
                 Text("Mute TTS:")
             }
@@ -66,11 +58,7 @@ fun ChatMessages(
 
         Div(attrs = { classes(Styles.chatBackground) })
 
-        Div(
-           attrs = {
-               classes(Styles.chatMessageBorderContainer)
-           }
-        ) {
+        Div(attrs = { classes(Styles.chatMessageBorderContainer) }) {
             for (i in 0 until 4) {
                 val cornerImageIndex = remember { Random.nextInt(CORNER_IMAGE_COUNT) }
 

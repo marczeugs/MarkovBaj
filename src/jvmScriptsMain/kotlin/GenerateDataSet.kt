@@ -83,6 +83,7 @@ suspend fun main() {
         MessageExclusionCriteria.String("lgb"),
         MessageExclusionCriteria.String("sex"),
         MessageExclusionCriteria.String("kys"),
+        MessageExclusionCriteria.String("groom"),
         MessageExclusionCriteria.Regex(Regex("n.?word", RegexOption.IGNORE_CASE)),
         MessageExclusionCriteria.Regex(Regex("shoo?t", RegexOption.IGNORE_CASE)),
         MessageExclusionCriteria.Regex(Regex("self.?harm", RegexOption.IGNORE_CASE)),
