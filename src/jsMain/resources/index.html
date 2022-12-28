@@ -3,14 +3,37 @@
     <head>
         <meta charset="UTF-8">
         <title>Markov Online</title>
+        <meta name="viewport" content="initial-scale=0.75, maximum-scale=0.75, width=device-width, user-scalable=no" />
 
         <style>
-            body {
-                margin: 0;
+            @keyframes swayAnimation {
+                from {
+                    margin-left: -1%;
+                }
+
+                to {
+                    margin-left: 1%;
+                }
             }
 
-            ::-webkit-scrollbar {
-                display: none;
+            @keyframes bobAnimation {
+                from {
+                    margin-top: -0.3%;
+                }
+
+                to {
+                    margin-top: 0.3%;
+                }
+            }
+
+            .Styles-markovHeadPart {
+                animation: 3s ease-in-out swayAnimation, 1.1s ease-in-out bobAnimation;
+                animation-iteration-count: infinite;
+                animation-direction: alternate;
+            }
+
+            .Styles-menuContainer, .Styles-menuButton, .Styles-notificationContainer {
+                transition: 0.2s ease-in-out margin-top;
             }
         </style>
     </head>

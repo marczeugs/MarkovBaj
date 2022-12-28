@@ -1,11 +1,15 @@
-
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+package components
+import ScrollHandler
+import Styles
+import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 data class ChatMessage(
     val owner: Owner,
@@ -39,33 +43,36 @@ fun ChatMessages(
     }
 
     Div(attrs = { classes(Styles.chatContainer) }) {
-        Div(attrs = { classes(Styles.ttsMutedSettingContainer) }) {
-            Span {
-                Text("Mute TTS:")
-            }
+        Div(
+            attrs = {
+                classes(Styles.ttsMutedSettingContainer)
 
-            Input(
-                type = InputType.Checkbox,
-                attrs = {
-                    checked(muted)
-
-                    onChange {
-                        onMutedChanged(it.value)
-                    }
+                onClick {
+                    onMutedChanged(!muted)
                 }
+            }
+        ) {
+            Img(
+                src = "img/tts_off.png",
+                attrs = { classes(Styles.ttsMutedSettingIcon, *(if (muted) arrayOf() else arrayOf(Styles.hidden))) }
+            )
+
+            Img(
+                src = "img/tts_on.png",
+                attrs = { classes(Styles.ttsMutedSettingIcon, *(if (!muted) arrayOf() else arrayOf(Styles.hidden))) }
             )
         }
 
         Div(attrs = { classes(Styles.chatBackground) })
 
-        Div(attrs = { classes(Styles.chatMessageBorderContainer) }) {
+        Div(attrs = { classes(Styles.chatBorderContainer) }) {
             for (i in 0 until 4) {
                 val cornerImageIndex = remember { Random.nextInt(CORNER_IMAGE_COUNT) }
 
                 Img(
-                    src = "box_corner_$cornerImageIndex.png",
+                    src = "img/chatmessages/box_corner_$cornerImageIndex.png",
                     attrs = {
-                        classes(Styles.chatCorner)
+                        classes(Styles.chatBorderCorner)
 
                         style {
                             gridColumn((1 + (i / 2) * 2).toString())
@@ -93,7 +100,7 @@ fun ChatMessages(
                 Div(
                     attrs = {
                         style {
-                            backgroundImage("url('box_side_${sideImageIndex}_horizontal.png')")
+                            backgroundImage("url('img/chatmessages/box_side_${sideImageIndex}_horizontal.png')")
                             backgroundRepeat("repeat-x")
                             margin(10.px)
                             height(23.px)
@@ -106,9 +113,7 @@ fun ChatMessages(
                             }
                         }
                     }
-                ) {
-
-                }
+                ) { }
             }
 
             for (i in 0 until 2) {
@@ -117,7 +122,7 @@ fun ChatMessages(
                 Div(
                     attrs = {
                         style {
-                            backgroundImage("url('box_side_${sideImageIndex}_vertical.png')")
+                            backgroundImage("url('img/chatmessages/box_side_${sideImageIndex}_vertical.png')")
                             backgroundRepeat("repeat-y")
                             margin(10.px)
                             width(23.px)
@@ -142,13 +147,45 @@ fun ChatMessages(
                 }
             ) {
                 for (message in messages) {
-                    Div(attrs = { classes(Styles.chatMessage, if (message.owner == ChatMessage.Owner.Markov) Styles.chatMessageMarkov else Styles.chatMessageUser) }) {
+                    Div(attrs = { classes(Styles.chatMessage) }) {
+                        Span(attrs = { classes(if (message.owner == ChatMessage.Owner.User) Styles.chatMessageConsoleUser else Styles.chatMessageConsoleMarkov) }) {
+                            Text("${if (message.owner == ChatMessage.Owner.User) "baj" else "markov"}@markovonline")
+                        }
+
+                        Span(attrs = { classes(Styles.chatMessageConsoleUnimportant) }) {
+                            Text(":")
+                        }
+
+                        Span(attrs = { classes(Styles.chatMessageConsoleLocation) }) {
+                            Text("~")
+                        }
+
+                        Span(attrs = { classes(Styles.chatMessageConsoleUnimportant) }) {
+                            Text("$ ")
+                        }
+
                         when (message.content) {
                             ChatMessage.Content.Loading -> {
-                                Img(
-                                    src = "loading.svg",
-                                    attrs = { classes(Styles.loadingIcon) }
-                                )
+                                var loadingIconCharacterIndex by remember { mutableStateOf(0) }
+
+                                LaunchedEffect(Unit) {
+                                    while (isActive) {
+                                        loadingIconCharacterIndex++
+                                        delay(200.milliseconds)
+                                    }
+                                }
+
+                                Span {
+                                    Text("[${
+                                        when (loadingIconCharacterIndex % 4) {
+                                            0 -> '|'
+                                            1 -> '/'
+                                            2 -> '-'
+                                            3 -> '\\'
+                                            else -> error("Unreachable")
+                                        }
+                                    }]")
+                                }
                             }
                             is ChatMessage.Content.Text -> {
                                 Span {
@@ -157,7 +194,7 @@ fun ChatMessages(
                             }
                             is ChatMessage.Content.Error -> {
                                 Span(attrs = { classes(Styles.chatMessageError) }) {
-                                    Text(message.content.text)
+                                    Text("[EXCEPTION] ${message.content.text}")
                                 }
                             }
                         }

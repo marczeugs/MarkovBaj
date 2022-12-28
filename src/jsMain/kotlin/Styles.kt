@@ -1,7 +1,25 @@
 import org.jetbrains.compose.web.css.*
 
 object Styles : StyleSheet() {
-    private val bodyPadding = 16.px
+    val bodyPadding = 16.px
+
+
+    init {
+        "body" style {
+            margin(0.px)
+            backgroundColor(Color.black)
+            color(Color.white)
+            property("overscroll-behavior", "none")
+        }
+
+        "::-webkit-scrollbar" style {
+            display(DisplayStyle.None)
+        }
+
+        "input:focus" style {
+            outline("none")
+        }
+    }
 
 
     val rootElement by style {
@@ -11,32 +29,125 @@ object Styles : StyleSheet() {
         maxWidth(768.px)
         height(100.vh)
 
-        margin("auto" as CSSNumeric)
+        property("margin", "auto")
         padding(bodyPadding)
 
         display(DisplayStyle.Flex)
         flexDirection(FlexDirection.Column)
 
         boxSizing("border-box")
-        fontFamily("Helvetica")
+        fontFamily("Consolas")
     }
 
     val hidden by style {
-        display(DisplayStyle.None)
+        opacity(0)
     }
 
-    val achievementsBoxContainer by style {
+    val smallBorderContainer by style {
+        display(DisplayStyle.Grid)
+        gridTemplateColumns("20px auto 20px")
+        gridTemplateRows("15px auto 15px")
+        width(100.percent)
+    }
+
+    val smallBorderHorizontalImage by style {
+        width(100.percent)
+        height(69.px)
+    }
+
+    val notificationContainer by style {
+        position(Position.Absolute)
+        left(0.px)
+        right(128.px)
+        backgroundColor(rgba(50, 50, 50, 0.8))
+        display(DisplayStyle.Flex)
+        justifyItems("center")
+    }
+
+    val notificationInnerContainer by style {
+        property("z-index", 3)
+    }
+
+    val notificationBackground by style {
+        position(Position.Absolute)
+        left(10.px)
+        right(10.px)
+        top(10.px)
+        bottom(10.px)
+        backgroundColor(rgb(60, 60, 60))
+        property("z-index", 3)
+    }
+
+    val notificationContent by style {
+        fontSize(16.px)
+        gridColumn("2")
+        gridRow("2")
+        property("z-index", 3)
+        display(DisplayStyle.Flex)
+        alignItems(AlignItems.Center)
+    }
+
+    val menuButton by style {
+        position(Position.Absolute)
+        right(bodyPadding)
+        padding(8.px)
+        property("z-index", 1)
+        property("border", "none")
+        backgroundColor(rgb(30, 30, 30))
+        borderRadius(bottomLeft = 8.px, bottomRight = 8.px, topLeft = 0.px, topRight = 0.px)
+        cursor("pointer")
+    }
+
+    val menuButtonIcon by style {
+        width(36.px)
+    }
+
+    val menuContainer by style {
         position(Position.Absolute)
         display(DisplayStyle.Flex)
-        height(40.percent)
-        left(bodyPadding)
-        right(bodyPadding)
+        height(40.vh)
+        left(0.px)
+        right(0.px)
         padding(16.px)
-        backgroundColor(Color("rgba(255, 128, 255, 0.7)"))
+        backgroundColor(rgba(20, 20, 20, 0.9))
         property("z-index", 1)
         flexWrap(FlexWrap.Wrap)
         property("place-content", "flex-start")
         justifyContent(JustifyContent.SpaceBetween)
+        overflowY("scroll")
+        boxSizing("border-box")
+        color(Color.white)
+        borderRadius(bottomLeft = 8.px, bottomRight = 8.px, topLeft = 0.px, topRight = 0.px)
+    }
+
+    val menuHeadline by style {
+        flexBasis(100.percent)
+        padding(16.px)
+        textAlign("justify")
+        fontSize(18.pt)
+        marginBottom(0.px)
+    }
+
+    val menuText by style {
+        flexBasis(100.percent)
+        padding(16.px)
+        paddingTop(0.px)
+        textAlign("justify")
+        fontSize(13.pt)
+    }
+
+    val creditsLine by style {
+        flexBasis(100.percent)
+        padding(16.px)
+        paddingTop(0.px)
+        paddingBottom(0.px)
+        display(DisplayStyle.Flex)
+        alignItems(AlignItems.Center)
+    }
+
+    val socialMediaIcon by style {
+        marginTop(2.px)
+        marginLeft(10.px)
     }
 
     val achievementContainer by style {
@@ -46,23 +157,17 @@ object Styles : StyleSheet() {
         width(96.px)
     }
 
-    val achievementExplanation by style {
-        flexBasis(100.percent)
-        padding(16.px)
-        textAlign("justify")
-    }
-
     val achievementIconContainer by style {
         width(100.percent)
         height(96.px)
-        borderRadius(8.px)
+        borderRadius(9.px)
         display(DisplayStyle.Flex)
     }
 
     val achievementIcon by style {
-        margin("auto" as CSSNumeric)
-        width(60.percent)
-        height(60.percent)
+        width(100.percent)
+        height(100.percent)
+        borderRadius(8.px)
     }
 
     val achievementCaption by style {
@@ -71,6 +176,7 @@ object Styles : StyleSheet() {
         textAlign("center")
         boxSizing("border-box")
         property("word-wrap", "break-word")
+        fontSize(10.pt)
     }
 
     val markovContainer by style {
@@ -86,40 +192,40 @@ object Styles : StyleSheet() {
     }
 
     val markovHeadPart by style {
-        /*animation(swayAnimation.provideDelegate(Styles, ::swayAnimation).getValue(Styles, ::swayAnimation)) {
-            duration(3.s)
-            timingFunction(AnimationTimingFunction.EaseInOut)
-            iterationCount(Int.MAX_VALUE)
-            direction(AnimationDirection.Alternate)
-        }
-
-        animation(bobAnimation.provideDelegate(Styles, ::bobAnimation).getValue(Styles, ::bobAnimation)) {
-            duration(1.1.s)
-            timingFunction(AnimationTimingFunction.EaseInOut)
-            iterationCount(Int.MAX_VALUE)
-            direction(AnimationDirection.Alternate)
-        }*/
+//        animation(swayAnimation) {
+//            duration(3.s)
+//            timingFunction(AnimationTimingFunction.EaseInOut)
+//            iterationCount(Int.MAX_VALUE)
+//            direction(AnimationDirection.Alternate)
+//        }
+//
+//        animation(bobAnimation) {
+//            duration(1.1.s)
+//            timingFunction(AnimationTimingFunction.EaseInOut)
+//            iterationCount(Int.MAX_VALUE)
+//            direction(AnimationDirection.Alternate)
+//        }
     }
 
-    private val swayAnimation = keyframes {
-        from {
-            marginLeft((-1).percent)
-        }
-
-        to {
-            marginTop(1.percent)
-        }
-    }
-
-    private val bobAnimation = keyframes {
-        from {
-            marginTop((-0.3).percent)
-        }
-
-        to {
-            marginTop(0.3.percent)
-        }
-    }
+//    val swayAnimation by keyframes {
+//        from {
+//            marginLeft((-1).percent)
+//        }
+//
+//        to {
+//            marginTop(1.percent)
+//        }
+//    }
+//
+//    val bobAnimation by keyframes {
+//        from {
+//            marginTop((-0.3).percent)
+//        }
+//
+//        to {
+//            marginTop(0.3.percent)
+//        }
+//    }
 
     val chatContainer by style {
         width(100.percent)
@@ -131,8 +237,17 @@ object Styles : StyleSheet() {
 
     val ttsMutedSettingContainer by style {
         position(Position.Absolute)
-        top((-20).px)
+        top((-96).px)
         right(50.px)
+        width(96.px)
+        height(96.px)
+        cursor("pointer")
+    }
+
+    val ttsMutedSettingIcon by style {
+        position(Position.Absolute)
+        width(96.px)
+        height(96.px)
     }
 
     val chatBackground by style {
@@ -141,11 +256,11 @@ object Styles : StyleSheet() {
         right(20.px)
         top(20.px)
         bottom(20.px)
-        backgroundColor(Color.lightgray)
+        backgroundColor(rgb(60, 60, 60))
         property("z-index", -1)
     }
 
-    val chatMessageBorderContainer by style {
+    val chatBorderContainer by style {
         width(100.percent)
         height(100.percent)
         display(DisplayStyle.Grid)
@@ -161,48 +276,74 @@ object Styles : StyleSheet() {
         overflow("scroll")
         gridColumn("2")
         gridRow("2")
+        lineHeight("1.3")
     }
 
-    val chatCorner by style {
+    val chatBorderCorner by style {
         width(100.percent)
     }
 
     val chatMessage by style {
-        margin(12.px)
-        padding(20.px)
-        borderRadius(16.px)
-        boxSizing("border-box")
-        width("fit-content" as CSSNumeric)
-        maxWidth(40.percent)
         fontSize(16.px)
         property("word-wrap", "break-word")
+        paddingBottom(4.px)
     }
 
-    val chatMessageMarkov by style {
-        backgroundColor(rgb(0xdd, 0xdd, 0xdd))
+    val chatMessageConsoleUser by style {
+        color(Color.lime);
     }
 
-    val chatMessageUser by style {
-        backgroundColor(rgb(0xaa, 0xee, 0x99))
-        alignSelf("end")
+    val chatMessageConsoleMarkov by style {
+        color(rgb(255, 40, 20))
+    }
+
+    val chatMessageConsoleLocation by style {
+        color(Color.dodgerblue)
+    }
+
+    val chatMessageConsoleUnimportant by style {
+        color(Color.lightgray)
     }
 
     val chatMessageError by style {
         color(rgb(0xcc, 0x00, 0x00))
     }
 
-    val loadingIcon by style {
-        width(36.px)
+    val chatInputContainer by style {
+        width(100.percent)
+        position(Position.Relative)
+        paddingLeft(8.px)
+        paddingRight(8.px)
+        marginTop(8.px)
+        boxSizing("border-box")
+    }
+
+    val chatInputBackground by style {
+        position(Position.Absolute)
+        left(10.px)
+        right(10.px)
+        top(10.px)
+        bottom(10.px)
+        backgroundColor(rgb(60, 60, 60))
+        property("z-index", -1)
     }
 
     val chatInput by style {
         width(100.percent)
-        boxSizing("border-box")
-        borderRadius(12.px)
-        backgroundColor(rgb(0xee, 0xee, 0xee))
-        border(1.px, LineStyle.Solid, Color.black)
+        backgroundColor(Color.transparent)
+        property("border", "none")
         fontSize(16.px)
-        padding(12.px)
+        paddingTop(10.px)
+        paddingBottom(10.px)
+        gridColumn("2")
+        gridRow("2")
         boxSizing("border-box")
+        fontFamily("Consolas")
+        color(Color.white)
+    }
+
+    val chatInputBorderContainer by style {
+        width(100.percent)
+        height(100.percent)
     }
 }

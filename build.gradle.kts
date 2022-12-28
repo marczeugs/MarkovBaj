@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     val kotlinVersion: String by System.getProperties()
 
@@ -8,12 +6,12 @@ plugins {
     // Common
     kotlin("plugin.serialization") version kotlinVersion
 
-    // Server
+    // JVM Backend (Bot + Janitor Backend + REST API)
     id("com.github.johnrengelman.shadow") version "7.1.2"
     application
 
-    // Web
-    id("org.jetbrains.compose") version "1.3.0-alpha01-dev831"
+    // Website Frontend
+    id("org.jetbrains.compose") version "1.3.0-rc01"
 }
 
 group = "marczeugs.markovbaj"
@@ -109,7 +107,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-apache-jvm:$ktorVersion")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.381")
+                implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.463")
 
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")

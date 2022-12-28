@@ -270,8 +270,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
 
                 body {
                     img {
-                        src =
-                            "https://styles.redditmedia.com/t5_4wpxrc/styles/profileIcon_1ypmzxwn0hn71.png?width=256&height=256&crop=256:256,smart&s=da81d12487728dfa78e33f9ae2af8a5df87ee317"
+                        src = "https://styles.redditmedia.com/t5_4wpxrc/styles/profileIcon_1ypmzxwn0hn71.png?width=256&height=256&crop=256:256,smart&s=da81d12487728dfa78e33f9ae2af8a5df87ee317"
                     }
 
                     p {
@@ -320,10 +319,9 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             try {
                 val pathSegments = Url(deleteCommentRequest.commentLink).pathSegments
 
-                val commentToDelete =
-                    @Suppress("UNCHECKED_CAST") (markovRedditClient.lookup("t1_${pathSegments[6]}") as Listing<Comment>)
-                        .children
-                        .first()
+                val commentToDelete = @Suppress("UNCHECKED_CAST") (markovRedditClient.lookup("t1_${pathSegments[6]}") as Listing<Comment>)
+                    .children
+                    .first()
 
                 if ((Clock.System.now() - commentToDelete.created.toInstant().toKotlinInstant() - 1.days).isPositive()) {
                     call.respondText("Comment is too old to be deleted.", status = HttpStatusCode.BadRequest)
@@ -331,10 +329,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                 }
 
                 if (commentToDelete.author.lowercase() != RuntimeVariables.botRedditUsername.lowercase()) {
-                    call.respondText(
-                        "Comment was not posted by authenticated account.",
-                        status = HttpStatusCode.BadRequest
-                    )
+                    call.respondText("Comment was not posted by authenticated account.", status = HttpStatusCode.BadRequest)
                     return@get
                 }
 
@@ -398,13 +393,21 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                 return@get
             }
 
-            val response = query.split(CommonConstants.wordSeparatorRegex).windowed(CommonConstants.consideredValuesForGeneration).shuffled().firstNotNullOfOrNull { potentialChainStart ->
-                if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
-                    markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
-                } else {
-                    null
+            logger.info { "Serving Markov chain query, input has length ${queryInput.input?.length}." }
+
+            val response = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+                query.split(CommonConstants.wordSeparatorRegex).windowed(CommonConstants.consideredValuesForGeneration).shuffled().firstNotNullOfOrNull { potentialChainStart ->
+                    if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
+                        markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
+                    } else {
+                        null
+                    }
                 }
-            } ?: markovChain.generateSequence().joinToString(" ")
+            } else {
+                null
+            } ?: run {
+                markovChain.generateSequence().joinToString(" ").take(5000)
+            }
 
             call.respondText(response)
         }
