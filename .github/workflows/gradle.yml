@@ -1,10 +1,10 @@
-name: Java CI with Gradle
+name: Build MarkovBaj Backend + Frontend
 
 on:
     push:
-        branches: [ "main" ]
+        branches: [ "main", "ci-test" ]
     pull_request:
-        branches: [ "main" ]
+        branches: [ "main", "ci-test" ]
 
 jobs:
     build:
@@ -31,11 +31,19 @@ jobs:
                   release_name: MarkovBaj ${{ steps.get_version.outputs.VERSION }}
                   draft: false
                   prerelease: false
-            - name: Build with Gradle
+            - name: Build Backend
               uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
               with:
-                  arguments: build
-            - name: Upload Release Asset (jar)
+                arguments: shadowJar
+            - name: Build Frontend Resources
+              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              with:
+                arguments: jsBrowserProductionExecutableDistributeResources
+            - name: Build Frontend JS
+              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              with:
+                arguments: jsBrowserProductionWebpack
+            - name: Upload Backend Jar
               id: upload-release-asset
               uses: actions/upload-release-asset@v1
               env:
@@ -43,5 +51,20 @@ jobs:
               with:
                   upload_url: ${{ steps.create_release.outputs.upload_url }}
                   asset_path: ./build/libs/MarkovBaj-${{ steps.get_version.outputs.VERSION }}-all.jar
-                  asset_name: MarkovBaj-${{ steps.get_version.outputs.VERSION }}-all.jar
+                  asset_name: MarkovBaj-Backend-${{ steps.get_version.outputs.VERSION }}.jar
                   asset_content_type: application/octet-stream
+            - name: Zip Frontend
+              uses: vimtor/action-zip@v1
+              with:
+                files: build/distributions/
+                dest: frontend.zip
+            - name: Upload Frontend Zip
+              id: upload-release-asset
+              uses: actions/upload-release-asset@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              with:
+                upload_url: ${{ steps.create_release.outputs.upload_url }}
+                asset_path: ./frontend.zip
+                asset_name: MarkovBaj-Frontend-${{ steps.get_version.outputs.VERSION }}.zip
+                asset_content_type: application/octet-stream
