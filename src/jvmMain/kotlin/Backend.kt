@@ -54,29 +54,29 @@ data class Session(
 )
 
 private object Routes {
-    @Resource("/")
+    @Resource("/janitorbackend")
     @Serializable
-    class Index
+    class JanitorBackend {
+        @Resource("login")
+        @Serializable
+        data class Login(val janitorBackend: JanitorBackend = JanitorBackend())
 
-    @Resource("/login")
-    @Serializable
-    class Login
+        @Resource("callback")
+        @Serializable
+        data class Callback(val janitorBackend: JanitorBackend = JanitorBackend())
 
-    @Resource("/callback")
-    @Serializable
-    class Callback
+        @Resource("manage")
+        @Serializable
+        data class Manage(val janitorBackend: JanitorBackend = JanitorBackend())
 
-    @Resource("/manage")
-    @Serializable
-    class Manage
+        @Resource("deletecomment")
+        @Serializable
+        data class DeleteComment(val janitorBackend: JanitorBackend = JanitorBackend(), @SerialName("comment_link") val commentLink: String)
 
-    @Resource("/deletecomment")
-    @Serializable
-    data class DeleteComment(@SerialName("comment_link") val commentLink: String)
-
-    @Resource("/styles.css")
-    @Serializable
-    class StylesCss
+        @Resource("styles.css")
+        @Serializable
+        data class StylesCss(val janitorBackend: JanitorBackend = JanitorBackend())
+    }
 
     @Resource("/api/v1")
     @Serializable
@@ -89,7 +89,7 @@ private object Routes {
 
 private val logger = KotlinLogging.logger("MarkovBaj:Backend")
 
-private val redditLoginRedirectUrl = "${RuntimeVariables.backendServerUrl}:${RuntimeVariables.backendServerPort}/callback"
+private val redditLoginRedirectUrl = "${RuntimeVariables.backendServerUrl}/janitorbackend/callback"
 
 fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String>) {
     embeddedServer(
@@ -106,7 +106,7 @@ private suspend fun ApplicationCall.respondReturnToLogin() {
     respondHtml {
         head {
             title("Invalid Reddit Login")
-            styleLink("/styles.css")
+            styleLink(application.run { href(Routes.JanitorBackend.StylesCss()) })
         }
 
         body {
@@ -205,16 +205,16 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
     }
 
     routing {
-        get<Routes.Index> {
+        get<Routes.JanitorBackend> {
             call.respondHtml {
                 head {
                     title("MarkovBaj Janitor Backend Login")
-                    styleLink("/styles.css")
+                    styleLink(this@myApplicationModule.run { href(Routes.JanitorBackend.StylesCss()) })
                 }
 
                 body {
                     button {
-                        onClick = "location.href = '/login'"
+                        onClick = "location.href = '${this@myApplicationModule.run { href(Routes.JanitorBackend.Login()) }}'"
 
                         +"Login"
                     }
@@ -227,11 +227,11 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
         }
 
         authenticate(redditOAuthName) {
-            get<Routes.Login> {
+            get<Routes.JanitorBackend.Login> {
                 // Redirects to `authorizeUrl` automatically
             }
 
-            get<Routes.Callback> {
+            get<Routes.JanitorBackend.Callback> {
                 val principal = call.authentication.principal<OAuthAccessTokenResponse.OAuth2>() ?: run {
                     call.respondReturnToLogin()
                     return@get
@@ -252,11 +252,11 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                     logger.info { "User '$userRedditClientName' has tried to log into the janitor backend, but isn't permitted to do so." }
                 }
 
-                call.respondRedirect("/manage")
+                call.respondRedirect(this@myApplicationModule.run { href(Routes.JanitorBackend.Manage()) })
             }
         }
 
-        get<Routes.Manage> {
+        get<Routes.JanitorBackend.Manage> {
             val session = call.sessions.get<Session>() ?: run {
                 call.respondReturnToLogin()
                 return@get
@@ -270,7 +270,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             call.respondHtml {
                 head {
                     title("MarkovBaj Janitor Backend")
-                    styleLink("/styles.css")
+                    styleLink(this@myApplicationModule.run { href(Routes.JanitorBackend.StylesCss()) })
                 }
 
                 body {
@@ -286,7 +286,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
 
                     br { }
 
-                    form(action = call.application.href(Routes.DeleteComment("")), method = FormMethod.get) {
+                    form(action = call.application.href(Routes.JanitorBackend.DeleteComment(commentLink = "")), method = FormMethod.get) {
                         h1 {
                             +"Comment deleter"
                         }
@@ -310,7 +310,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             }
         }
 
-        get<Routes.DeleteComment> { deleteCommentRequest ->
+        get<Routes.JanitorBackend.DeleteComment> { deleteCommentRequest ->
             val session = call.sessions.get<Session>() ?: run {
                 call.respondReturnToLogin()
                 return@get
@@ -348,7 +348,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             }
         }
 
-        get<Routes.StylesCss> {
+        get<Routes.JanitorBackend.StylesCss> {
             call.respondText(
                 text = CssBuilder().apply {
                     rule("body") {
@@ -393,10 +393,16 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
         }
 
         get<Routes.Api.Query> { queryInput ->
+            if (RuntimeVariables.backendCheckedReferrer != null && context.request.header("Referer") != RuntimeVariables.backendCheckedReferrer) {
+                logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")} because of invalid referrer, input has length ${queryInput.input?.length}, starts with: \"${queryInput.input?.take(200)}\"" }
+                call.respondText("This API is not public. Please refrain from using it from external sources.", status = HttpStatusCode.Forbidden)
+                return@get
+            }
+
             val query = queryInput.input
 
             if (query != null && query.length > 500) {
-                logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")}, input has length ${queryInput.input.length}, starts with: \"${queryInput.input.take(200)}\"" }
+                logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")} because of invalid query, input has length ${queryInput.input.length}, starts with: \"${queryInput.input.take(200)}\"" }
                 call.respondText("Input too long.", status = HttpStatusCode.BadRequest)
                 return@get
             }

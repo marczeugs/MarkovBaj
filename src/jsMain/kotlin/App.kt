@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.datetime.Clock
 import org.jetbrains.compose.web.css.Style
 import org.jetbrains.compose.web.dom.Div
+import org.w3c.dom.HTMLElement
 import org.w3c.files.Blob
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -52,6 +53,15 @@ fun App() {
                 document.body!!.innerHTML = "<div style=\"background-image: url('forsen.gif'); background-size: contain; width: 100vw; height: 100vh; background-repeat: no-repeat;\">"
                 easterEggInputQueueProgress = 0
             }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // Shitty hack to fix 100vh excluding URL bar on mobile devices, see: https://stackoverflow.com/questions/52848856/100vh-height-when-address-bar-is-shown-chrome-mobile
+        (window.document.documentElement as HTMLElement).style.setProperty("--vh", "${window.innerHeight.toDouble() / 100}px")
+
+        window.onresize = {
+            (window.document.documentElement as HTMLElement).style.setProperty("--vh", "${window.innerHeight.toDouble() / 100}px")
         }
     }
 

@@ -49,7 +49,11 @@ tasks.build {
 
 kotlin {
     js(IR) {
-        browser()
+        browser {
+            commonWebpackConfig {
+                devServer?.`open` = false
+            }
+        }
         binaries.executable()
     }
 

@@ -3,12 +3,12 @@ import FocusHandler
 import Styles
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.disabled
+import org.jetbrains.compose.web.attributes.onSubmit
 import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.css.*
-import org.jetbrains.compose.web.dom.Div
-import org.jetbrains.compose.web.dom.Img
-import org.jetbrains.compose.web.dom.TextInput
+import org.jetbrains.compose.web.dom.*
 
 @Composable
 fun ChatInput(
@@ -63,44 +63,50 @@ fun ChatInput(
                 ) { }
             }
 
-            TextInput(
-                value = text,
+            Form(
                 attrs = {
-                    classes(Styles.chatInput)
+                    onSubmit {
+                        it.preventDefault()
 
-                    focusHandler.run { install() } // Should probably be implemented with a context receiver as soon as they are stable
-
-                    if (currentlyProcessing) {
-                        disabled()
-                    }
-
-                    placeholder("Type a message and send with Enter.")
-
-                    onInput {
-                        text = it.value
-                    }
-
-                    onKeyDown {
-                        if (it.key == "Enter") {
-                            coroutineScope.launch {
-                                if (text.isBlank()) {
-                                    return@launch
-                                }
-
-                                currentlyProcessing = true
-
-                                val success = onMessageSent(text)
-
-                                if (success) {
-                                    text = ""
-                                }
-
-                                currentlyProcessing = false
+                        coroutineScope.launch {
+                            if (text.isBlank()) {
+                                return@launch
                             }
+
+                            currentlyProcessing = true
+
+                            val success = onMessageSent(text)
+
+                            if (success) {
+                                text = ""
+                            }
+
+                            currentlyProcessing = false
                         }
                     }
                 }
-            )
+            ) {
+                TextInput(
+                    value = text,
+                    attrs = {
+                        classes(Styles.chatInput)
+
+                        focusHandler.run { install() } // Should probably be implemented with a context receiver as soon as they are stable
+
+                        if (currentlyProcessing) {
+                            disabled()
+                        }
+
+                        placeholder("Type a message and send with Enter.")
+
+                        onInput {
+                            text = it.value
+                        }
+                    }
+                )
+
+                Input(InputType.Submit, attrs = { hidden() })
+            }
         }
     }
 }

@@ -31,6 +31,9 @@ object Styles : StyleSheet() {
         maxWidth(768.px)
         height(100.vh)
 
+        // Shitty hack to fix 100vh excluding URL bar on mobile devices, see: https://stackoverflow.com/questions/52848856/100vh-height-when-address-bar-is-shown-chrome-mobile
+        property("height", "calc(var(--vh, 1vh) * 100)")
+
         property("margin", "auto")
         padding(bodyPadding)
 
@@ -288,6 +291,7 @@ object Styles : StyleSheet() {
         gridColumn("2")
         gridRow("2")
         lineHeight("1.3")
+        property("scrollbar-width", "none")
     }
 
     val chatBorderCorner by style {
@@ -301,7 +305,7 @@ object Styles : StyleSheet() {
     }
 
     val chatMessageConsoleUser by style {
-        color(Color.lime);
+        color(Color.lime)
     }
 
     val chatMessageConsoleMarkov by style {

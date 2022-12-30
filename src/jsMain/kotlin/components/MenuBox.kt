@@ -44,6 +44,7 @@ fun MenuBox(
 
             style {
                 marginTop(if (expanded) -Styles.bodyPadding else (-40).vh - Styles.bodyPadding)
+                opacity(if (expanded) 100.percent else 0.percent)
             }
         }
     ) {

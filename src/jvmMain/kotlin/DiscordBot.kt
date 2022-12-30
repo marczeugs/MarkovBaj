@@ -33,7 +33,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         }
 
         on<MessageCreateEvent> {
-            if (selfId in message.mentionedUserIds || CommonConstants.triggerKeyword in message.content.lowercase()) {
+            if (selfId in message.mentionedUserIds || CommonConstants.triggerKeyword in message.content.lowercase() && RuntimeVariables.botActuallySendReplies) {
                 val response = tryGeneratingReplyFromWords(markovChain, message.content.split(CommonConstants.wordSeparatorRegex), platform = "Discord")
                     ?: markovChain.generateSequence().joinToString(" ")
 
@@ -42,7 +42,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         }
 
         on<ChatInputCommandInteractionCreateEvent> {
-            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov") {
+            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov" || !RuntimeVariables.botActuallySendReplies) {
                 return@on
             }
 

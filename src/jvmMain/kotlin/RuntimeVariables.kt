@@ -13,6 +13,7 @@ object RuntimeVariables {
     val backendRedditClientId: String = System.getenv("markovbaj_backend_clientid")
     val backendRedditClientSecret: String = System.getenv("markovbaj_backend_clientsecret")
     val backendPermittedUsers = System.getenv("markovbaj_backend_permittedusers").split(",")
+    val backendCheckedReferrer: String? = System.getenv("markovbaj_backend_checkedreferrer")
 
     val discordToken: String = System.getenv("markovbaj_discord_token")
 }

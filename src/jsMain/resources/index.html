@@ -13,6 +13,10 @@
         <meta name="viewport" content="initial-scale=0.75, maximum-scale=0.75, width=device-width, user-scalable=no" />
 
         <style>
+            body {
+                background-color: black; /* Prevent white background flashing before compose renders */
+            }
+
             @keyframes swayAnimation {
                 from {
                     margin-left: -1%;
@@ -40,7 +44,7 @@
             }
 
             .Styles-menuContainer, .Styles-menuButton, .Styles-notificationContainer {
-                transition: 0.15s ease-in-out margin-top;
+                transition: 0.15s ease-in-out margin-top, 0.15s ease-in-out opacity;
             }
         </style>
     </head>
