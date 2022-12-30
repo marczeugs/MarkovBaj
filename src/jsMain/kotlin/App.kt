@@ -9,16 +9,16 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.datetime.Clock
 import org.jetbrains.compose.web.css.Style
 import org.jetbrains.compose.web.dom.Div
 import org.w3c.files.Blob
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -28,14 +28,32 @@ val httpClient = HttpClient(Js) {
     }
 }
 
+
+private val easterEggInputQueue = listOf("ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a")
+
 @Composable
 fun App() {
     var talking by remember { mutableStateOf(false) }
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var muted by remember { mutableStateOf(false) }
 
-    val achievementCompletionMap = remember { LocalStorageBackedSnapshotStateMap<Int, Boolean>("achievements") }
+    val achievementCompletionMap = remember { LocalStorageBackedSnapshotStateMap<Int, CompletedAchievement>("completedAchievements") }
     val notificationQueue = remember { MutableSharedFlow<String?>(replay = 10) }
+
+    var easterEggInputQueueProgress by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        window.onkeydown = {
+            if (it.key == easterEggInputQueue[easterEggInputQueueProgress]) {
+                easterEggInputQueueProgress++
+            }
+
+            if (easterEggInputQueueProgress == easterEggInputQueue.size) {
+                document.body!!.innerHTML = "<div style=\"background-image: url('forsen.gif'); background-size: contain; width: 100vw; height: 100vh; background-repeat: no-repeat;\">"
+                easterEggInputQueueProgress = 0
+            }
+        }
+    }
 
     Style(Styles)
 
@@ -58,7 +76,8 @@ fun App() {
             muted = muted,
             onMutedChanged = {
                 muted = it
-            }
+            },
+            achievementCompletionMap = achievementCompletionMap
         )
 
         ChatInput(
@@ -80,31 +99,47 @@ fun App() {
                 delay(1.seconds)
 
                 try {
-                    val response = httpClient.get(if ("localhost" in window.location.href) "http://localhost:7777/api/v1/query?input=$message" else "/api/v1/query?input=$message").body<String>()
+                    val response = withTimeout(10.seconds) {
+                        httpClient.get(if ("localhost" in window.location.href) "http://localhost:7777/api/v1/query?input=$message" else "/api/v1/query?input=$message").let {
+                            if (it.status.isSuccess()) {
+                                it.body<String>()
+                            } else {
+                                throw MarkovBackendException(it.body())
+                            }
+                        }
+                    }
+
+                    val ttsResponse = if (!muted) {
+                        withTimeout(10.seconds) {
+                            httpClient.get("https://api.streamelements.com/kappa/v2/speech") {
+                                parameter("voice", "Brian")
+                                parameter("text", response)
+                            }.also {
+                                check(it.status.isSuccess()) { it.bodyAsText() }
+                            }
+                        }
+                    } else {
+                        null
+                    }
 
                     for (achievement in achievements) {
                         if (
                             when (achievement.matcher) {
                                 is Achievement.Matcher.KeywordList -> achievement.matcher.keywords.any { it in response.lowercase() && it !in message.lowercase() }
                                 is Achievement.Matcher.Lambda -> achievement.matcher.matcher(message, response)
+                                is Achievement.Matcher.Regex -> achievement.matcher.regex.containsMatchIn(response.lowercase()) && !achievement.matcher.regex.containsMatchIn(message.lowercase())
                             }
-                            && achievementCompletionMap[achievement.id] != true
+                            && achievement.id !in achievementCompletionMap
                         ) {
+                            achievementCompletionMap[achievement.id] = CompletedAchievement(
+                                instant = Clock.System.now(),
+                                query = message,
+                                response = response
+                            )
+
                             console.log("Message \"$message\" with response \"$response\" rewarded user with achievement \"${achievement.name}\".")
-                            achievementCompletionMap[achievement.id] = true
                             notificationQueue.tryEmit("Achievement unlocked: ${achievement.name}")
                         }
-                    }
-
-                    val ttsResponse = if (!muted) {
-                        httpClient.get("https://api.streamelements.com/kappa/v2/speech") {
-                            parameter("voice", "Brian")
-                            parameter("text", response)
-                        }.also {
-                            check(it.status.isSuccess()) { it.bodyAsText() }
-                        }
-                    } else {
-                        null
                     }
 
                     messages = messagesBeforeAnswer + ChatMessage(
@@ -151,6 +186,15 @@ fun App() {
                     }
 
                     true
+                } catch (e: MarkovBackendException) {
+                    console.error("Backend error while requesting response:", e)
+
+                    messages = messagesBeforeAnswer + ChatMessage(
+                        owner = ChatMessage.Owner.Markov,
+                        content = ChatMessage.Content.Error(e.information)
+                    )
+
+                    false
                 } catch (e: Exception) {
                     console.error("Error while requesting response:", e)
 
@@ -167,3 +211,5 @@ fun App() {
         )
     }
 }
+
+class MarkovBackendException(val information: String) : Exception()

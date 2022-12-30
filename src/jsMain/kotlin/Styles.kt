@@ -7,9 +7,11 @@ object Styles : StyleSheet() {
     init {
         "body" style {
             margin(0.px)
-            backgroundColor(Color.black)
+            backgroundImage("url('img/background.webp')")
+            backgroundRepeat("repeat")
+            backgroundSize("contain")
             color(Color.white)
-            property("overscroll-behavior", "none")
+            property("overscroll-behavior", "contain")
         }
 
         "::-webkit-scrollbar" style {
@@ -36,7 +38,7 @@ object Styles : StyleSheet() {
         flexDirection(FlexDirection.Column)
 
         boxSizing("border-box")
-        fontFamily("Consolas")
+        fontFamily("Consolas", "monospace")
     }
 
     val hidden by style {
@@ -57,7 +59,7 @@ object Styles : StyleSheet() {
 
     val notificationContainer by style {
         position(Position.Absolute)
-        left(0.px)
+        left(64.px)
         right(128.px)
         backgroundColor(rgba(50, 50, 50, 0.8))
         display(DisplayStyle.Flex)
@@ -250,13 +252,22 @@ object Styles : StyleSheet() {
         height(96.px)
     }
 
+    val achievementCompleteTrophyIcon by style {
+        position(Position.Absolute)
+        top((-96).px)
+        left(40.px)
+        width(96.px)
+        height(96.px)
+        cursor("pointer")
+    }
+
     val chatBackground by style {
         position(Position.Absolute)
         left(20.px)
         right(20.px)
         top(20.px)
         bottom(20.px)
-        backgroundColor(rgb(60, 60, 60))
+        backgroundColor(Color.black)
         property("z-index", -1)
     }
 
@@ -286,7 +297,7 @@ object Styles : StyleSheet() {
     val chatMessage by style {
         fontSize(16.px)
         property("word-wrap", "break-word")
-        paddingBottom(4.px)
+        paddingBottom(32.px)
     }
 
     val chatMessageConsoleUser by style {
@@ -324,7 +335,7 @@ object Styles : StyleSheet() {
         right(10.px)
         top(10.px)
         bottom(10.px)
-        backgroundColor(rgb(60, 60, 60))
+        backgroundColor(Color.black)
         property("z-index", -1)
     }
 
@@ -338,7 +349,7 @@ object Styles : StyleSheet() {
         gridColumn("2")
         gridRow("2")
         boxSizing("border-box")
-        fontFamily("Consolas")
+        fontFamily("Consolas", "monospace")
         color(Color.white)
     }
 

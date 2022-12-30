@@ -19,6 +19,12 @@ fun NotificationDisplay(
     var currentNotificationContent by remember { mutableStateOf("") }
     var notificationShown by remember { mutableStateOf(false) }
 
+    val notificationSound = remember {
+        (window.document.createElement("audio") as HTMLAudioElement).apply {
+            src = "tada.mp3"
+        }
+    }
+
     LaunchedEffect(Unit) {
         notificationQueue.collect {
             if (it == null) {
@@ -28,10 +34,7 @@ fun NotificationDisplay(
             currentNotificationContent = it
             notificationShown = true
 
-            (window.document.createElement("audio") as HTMLAudioElement).run {
-                src = "tada.mp3"
-                play()
-            }
+            notificationSound.apply { currentTime = 0.0 }.play()
 
             delay(5.seconds)
 
@@ -55,7 +58,7 @@ fun NotificationDisplay(
         Div(attrs = { classes(Styles.smallBorderContainer, Styles.notificationInnerContainer) }) {
             for (i in 0 until 2) {
                 Img(
-                    src = "img/chatinput/input_${if (i == 0) "left" else "right"}.png",
+                    src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
                         classes(Styles.smallBorderHorizontalImage)
 
@@ -71,7 +74,7 @@ fun NotificationDisplay(
                 Div(
                     attrs = {
                         style {
-                            backgroundImage("url('img/chatinput/input_${if (i == 0) "top" else "bottom"}.png')")
+                            backgroundImage("url('img/chatinput/input_${if (i == 0) "top" else "bottom"}.webp')")
                             backgroundRepeat("repeat-x")
                             backgroundSize("auto 15px")
                             gridColumn("2")

@@ -21,6 +21,30 @@ repositories {
     google()
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+
+    // Kord snapshots
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+}
+
+val buildInfoGenerator by tasks.registering(Sync::class) {
+    from(
+        resources.text.fromString(
+            """
+                object BuildInfo {
+                    const val PROJECT_VERSION = "${project.version}"
+                    const val PROJECT_BUILD_TIMESTAMP_MILLIS = ${System.currentTimeMillis()}
+                }
+            """.trimIndent()
+        )
+    ) {
+        rename { "BuildInfo.kt" }
+    }
+
+    into(layout.buildDirectory.dir("generated/kotlin/"))
+}
+
+tasks.build {
+    dependsOn(buildInfoGenerator)
 }
 
 kotlin {
@@ -40,6 +64,7 @@ kotlin {
     val ktorVersion: String by System.getProperties()
     val kotlinXSerializationVersion: String by System.getProperties()
     val kotlinXCoroutinesVersion: String by System.getProperties()
+    val kordVersion: String by System.getProperties()
 
     sourceSets {
         all {
@@ -54,8 +79,11 @@ kotlin {
         }
 
         val commonMain by getting {
+            kotlin.srcDir(buildInfoGenerator.map { it.destinationDir })
+
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinXSerializationVersion")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
             }
         }
 
@@ -83,7 +111,6 @@ kotlin {
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinXCoroutinesVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinXSerializationVersion")
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
                 implementation(files("lib/JRAW-1.1.0.jar"))
                 implementation("com.squareup.okhttp3:okhttp:4.10.0")
@@ -111,6 +138,12 @@ kotlin {
 
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")
+
+                implementation("dev.kord:kord-core:$kordVersion") {
+                    capabilities {
+                        requireCapability("dev.kord:core-voice:$kordVersion")
+                    }
+                }
             }
         }
 
@@ -141,10 +174,4 @@ kotlin {
 
 application {
     mainClass.set("MarkovBajKt")
-}
-
-tasks.processResources {
-    filesMatching("buildinfo.properties") {
-        expand(project.properties)
-    }
 }

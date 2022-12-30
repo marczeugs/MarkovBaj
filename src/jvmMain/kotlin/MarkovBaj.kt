@@ -1,8 +1,10 @@
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.datetime.toKotlinInstant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -18,9 +20,15 @@ import kotlin.concurrent.fixedRateTimer
 import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 
-val logger = KotlinLogging.logger("MarkovBaj")
+private val logger = KotlinLogging.logger("MarkovBaj:Reddit")
+private val generalLogger = KotlinLogging.logger("MarkovBaj:General")
 
 fun main() {
+    val botCoroutineScope = CoroutineScope(Dispatchers.Default)
+
+    generalLogger.info { "Starting MarkovBaj Backend version ${BuildInfo.PROJECT_VERSION}, Build ${Instant.fromEpochMilliseconds(BuildInfo.PROJECT_BUILD_TIMESTAMP_MILLIS)}..." }
+
+
     val json = Json {
         ignoreUnknownKeys = true
     }
@@ -46,7 +54,7 @@ fun main() {
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
         appId = RuntimeVariables.botAppId,
-        version = BuildInfo.version,
+        version = BuildInfo.PROJECT_VERSION,
         redditUsername = RuntimeVariables.botAuthorRedditUsername
     )
 
@@ -56,14 +64,19 @@ fun main() {
 
     logger.info("Connected to Reddit.")
 
+
     setupBackendServer(redditClient, json, markovChain)
+
+
+    botCoroutineScope.launch {
+        setupDiscordBot(markovChain)
+    }
+
 
     val activeSubreddit = redditClient.subreddit(BotConstants.activeSubreddit)
 
     var alreadyProcessedPostIds = listOf<String>()
     var alreadyProcessedCommentsIds = listOf<String>()
-
-    val botCoroutineScope = CoroutineScope(Dispatchers.Default)
 
     logger.info("Bot running.")
 
@@ -104,39 +117,41 @@ fun main() {
 
                 var commentCounter = 0
 
-                for (message in newInboxMessages) {
-                    if (commentCounter >= BotConstants.maxCommentsPerCheck) {
-                        logger.warn("Hit comment limit, not posting any more replies.")
-                        return@launch
-                    }
-
-                    if (!message.isComment) {
-                        logger.warn("Username mention with id ${message.id} was not a comment, skipping...")
-                        return@launch
-                    }
-
-                    val wordsInTitle = message.body.split(CommonConstants.wordSeparatorRegex)
-
-                    val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
-                        tryGeneratingReplyFromWords(markovChain, wordsInTitle)
-                    } else {
-                        null
-                    }
-
-                    val actualReply = if (relatedReply != null) {
-                        logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
-                        relatedReply
-                    } else {
-                        markovChain.generateSequence().joinToString(" ").also {
-                            logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
+                if (RuntimeVariables.botAnswerMentions) {
+                    for (message in newInboxMessages) {
+                        if (commentCounter >= BotConstants.maxCommentsPerCheck) {
+                            logger.warn("Hit comment limit, not posting any more replies.")
+                            return@launch
                         }
+
+                        if (!message.isComment) {
+                            logger.warn("Username mention with id ${message.id} was not a comment, skipping...")
+                            return@launch
+                        }
+
+                        val wordsInTitle = message.body.split(CommonConstants.wordSeparatorRegex)
+
+                        val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+                            tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
+                        } else {
+                            null
+                        }
+
+                        val actualReply = if (relatedReply != null) {
+                            logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
+                            relatedReply
+                        } else {
+                            markovChain.generateSequence().joinToString(" ").also {
+                                logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
+                            }
+                        }
+
+                        redditClient.comment(message.id).safeReply(actualReply)
+                        redditClient.me().inbox().markRead(true, message.fullName)
+                        commentCounter++
+
+                        delay(BotConstants.delayBetweenComments)
                     }
-
-                    redditClient.comment(message.id).safeReply(actualReply)
-                    redditClient.me().inbox().markRead(true, message.fullName)
-                    commentCounter++
-
-                    delay(BotConstants.delayBetweenComments)
                 }
 
                 for (post in newPosts) {
@@ -153,7 +168,7 @@ fun main() {
                         val wordsInTitle = post.title.split(CommonConstants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
-                            tryGeneratingReplyFromWords(markovChain, wordsInTitle)
+                            tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
                         } else {
                             null
                         }
@@ -188,7 +203,7 @@ fun main() {
                         val wordsInComment = comment.body.split(CommonConstants.wordSeparatorRegex)
 
                         val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
-                            tryGeneratingReplyFromWords(markovChain, wordsInComment)
+                            tryGeneratingReplyFromWords(markovChain, wordsInComment, platform = "Reddit")
                         } else {
                             null
                         }
@@ -215,14 +230,14 @@ fun main() {
     }
 }
 
-private fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>): String? {
+fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>, platform: String): String? {
     words.windowed(CommonConstants.consideredValuesForGeneration).shuffled().forEach { potentialChainStart ->
         if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
             return markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
         }
     }
 
-    logger.info("Unable to generate a response, sending default...")
+    generalLogger.info("[$platform] Unable to generate a response, using default instead...")
     return null
 }
 

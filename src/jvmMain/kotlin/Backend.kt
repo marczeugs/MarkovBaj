@@ -7,9 +7,11 @@ import io.ktor.server.auth.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.html.*
+import io.ktor.server.plugins.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.*
 import io.ktor.server.resources.*
 import io.ktor.server.resources.Resources
 import io.ktor.server.response.*
@@ -28,6 +30,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import net.dean.jraw.RedditClient
 import net.dean.jraw.http.OkHttpNetworkAdapter
 import net.dean.jraw.http.UserAgent
@@ -84,6 +87,8 @@ private object Routes {
     }
 }
 
+private val logger = KotlinLogging.logger("MarkovBaj:Backend")
+
 private val redditLoginRedirectUrl = "${RuntimeVariables.backendServerUrl}:${RuntimeVariables.backendServerPort}/callback"
 
 fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String>) {
@@ -121,9 +126,9 @@ private suspend fun ApplicationCall.respondReturnToLogin() {
 private fun setupRedditClient(session: Session, validateUser: Boolean = true): RedditClient? {
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
-        appId = "MarkovBaj Comment Sanitation and Waste Management Engineer Duties",
-        version = BuildInfo.version,
-        redditUsername = "the_marcster"
+        appId = "${RuntimeVariables.botAppId} Comment Sanitation and Waste Management Engineer Duties",
+        version = BuildInfo.PROJECT_VERSION,
+        redditUsername = RuntimeVariables.botAuthorRedditUsername
     )
 
     val redditClient = RedditClient::class.constructors.first().call(
@@ -215,7 +220,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                     }
 
                     footer {
-                        +"Version ${BuildInfo.version}"
+                        +"Version ${BuildInfo.PROJECT_VERSION}, Build ${Instant.fromEpochMilliseconds(BuildInfo.PROJECT_BUILD_TIMESTAMP_MILLIS)}"
                     }
                 }
             }
@@ -388,15 +393,18 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
         }
 
         get<Routes.Api.Query> { queryInput ->
-            val query = queryInput.input.takeIf { input -> input?.length?.let { it < 200 } == true } ?: run {
+            val query = queryInput.input
+
+            if (query != null && query.length > 500) {
+                logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")}, input has length ${queryInput.input.length}, starts with: \"${queryInput.input.take(200)}\"" }
                 call.respondText("Input too long.", status = HttpStatusCode.BadRequest)
                 return@get
             }
 
-            logger.info { "Serving Markov chain query, input has length ${queryInput.input?.length}." }
+            logger.info { "Serving Markov chain query request from ${context.request.header("X-Real-Ip")}, input has length ${queryInput.input?.length ?: 0}, starts with: \"${queryInput.input?.take(200)}\"" }
 
             val response = if (Math.random() > BotConstants.unrelatedAnswerChance) {
-                query.split(CommonConstants.wordSeparatorRegex).windowed(CommonConstants.consideredValuesForGeneration).shuffled().firstNotNullOfOrNull { potentialChainStart ->
+                query?.split(CommonConstants.wordSeparatorRegex)?.windowed(CommonConstants.consideredValuesForGeneration)?.shuffled()?.firstNotNullOfOrNull { potentialChainStart ->
                     if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
                         markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
                     } else {

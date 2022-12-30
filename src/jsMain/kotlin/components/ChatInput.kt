@@ -37,7 +37,7 @@ fun ChatInput(
         Div(attrs = { classes(Styles.chatInputBorderContainer, Styles.smallBorderContainer) }) {
             for (i in 0 until 2) {
                 Img(
-                    src = "img/chatinput/input_${if (i == 0) "left" else "right"}.png",
+                    src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
                         classes(Styles.smallBorderHorizontalImage)
 
@@ -53,7 +53,7 @@ fun ChatInput(
                 Div(
                     attrs = {
                         style {
-                            backgroundImage("url('img/chatinput/input_${if (i == 0) "top" else "bottom"}.png')")
+                            backgroundImage("url('img/chatinput/input_${if (i == 0) "top" else "bottom"}.webp')")
                             backgroundRepeat("repeat-x")
                             backgroundSize("auto 15px")
                             gridColumn("2")
