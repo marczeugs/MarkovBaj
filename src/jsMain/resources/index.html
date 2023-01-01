@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta property="og:title" content="Markov Online">
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="https://markovbaj.app">
+        <meta property="og:image" content="https://markovbaj.app/thumbnail.png">
+        <meta property="og:description" content="Online website that allows you to interact with (in)famous Reddit bot">
+        <meta name="theme-color" content="#FF0000">
+
+        <title>Markov Online</title>
+        <meta name="viewport" content="initial-scale=0.75, maximum-scale=0.75, width=device-width, user-scalable=no" />
+
+        <style>
+            body {
+                background-color: black; /* Prevent white background flashing before compose renders */
+            }
+
+            @keyframes swayAnimation {
+                from {
+                    margin-left: -1%;
+                }
+
+                to {
+                    margin-left: 1%;
+                }
+            }
+
+            @keyframes bobAnimation {
+                from {
+                    margin-top: -0.3%;
+                }
+
+                to {
+                    margin-top: 0.3%;
+                }
+            }
+
+            .Styles-markovHeadPart {
+                animation: 3s ease-in-out swayAnimation, 1.1s ease-in-out bobAnimation;
+                animation-iteration-count: infinite;
+                animation-direction: alternate;
+            }
+
+            .Styles-menuContainer, .Styles-menuButton, .Styles-notificationContainer {
+                transition: 0.15s ease-in-out margin-top, 0.15s ease-in-out opacity;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script src="MarkovBaj.js"></script>
+    </body>
+</html>
