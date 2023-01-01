@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import kotlinx.browser.window
 import kotlinx.datetime.Instant
 import org.jetbrains.compose.web.attributes.ATarget
+import org.jetbrains.compose.web.attributes.Draggable
 import org.jetbrains.compose.web.attributes.target
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
@@ -97,6 +98,7 @@ fun MenuBox(
                         src = "img/achievements/${achievement.id}.webp",
                         attrs = {
                             classes(Styles.achievementIcon)
+                            draggable(Draggable.False)
                         }
                     )
                 }
@@ -129,7 +131,12 @@ fun MenuBox(
             Text("Design Lead / Visuals: 2pfrog")
 
             A(href = "https://twitter.com/2pfrog", attrs = { classes(Styles.socialMediaIcon); target(ATarget.Blank) }) {
-                Img(src = "img/socialmedia/twitter.svg")
+                Img(
+                    src = "img/socialmedia/twitter.svg",
+                    attrs = {
+                        draggable(Draggable.False)
+                    }
+                )
             }
         }
 
@@ -137,11 +144,21 @@ fun MenuBox(
             Text("Software Development Lead: the_marcster")
 
             A(href = "https://github.com/marczeugs", attrs = { classes(Styles.socialMediaIcon); target(ATarget.Blank) }) {
-                Img(src = "img/socialmedia/github.svg")
+                Img(
+                    src = "img/socialmedia/github.svg",
+                    attrs = {
+                        draggable(Draggable.False)
+                    }
+                )
             }
 
             A(href = "https://www.twitch.tv/the_marcster", attrs = { classes(Styles.socialMediaIcon); target(ATarget.Blank) }) {
-                Img(src = "img/socialmedia/twitch.svg")
+                Img(
+                    src = "img/socialmedia/twitch.svg",
+                    attrs = {
+                        draggable(Draggable.False)
+                    }
+                )
             }
         }
 

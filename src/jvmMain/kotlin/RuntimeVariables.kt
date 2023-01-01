@@ -16,4 +16,5 @@ object RuntimeVariables {
     val backendCheckedReferrer: String? = System.getenv("markovbaj_backend_checkedreferrer")
 
     val discordToken: String = System.getenv("markovbaj_discord_token")
+    val discordActuallySendReplies = System.getenv("markovbaj_discord_actuallysendreplies") == "true"
 }

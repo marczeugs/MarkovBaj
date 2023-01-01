@@ -18,6 +18,7 @@ import org.jetbrains.compose.web.css.Style
 import org.jetbrains.compose.web.dom.Div
 import org.w3c.dom.HTMLElement
 import org.w3c.files.Blob
+import org.w3c.files.BlobPropertyBag
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.time.Duration.Companion.milliseconds
@@ -160,7 +161,7 @@ fun App() {
                     talking = true
 
                     if (ttsResponse != null) {
-                        val audio = Audio(URL.createObjectURL(Blob(arrayOf(ttsResponse.readBytes()))))
+                        val audio = Audio(URL.createObjectURL(Blob(arrayOf(ttsResponse.readBytes()), BlobPropertyBag(type = "audio/mpeg"))))
 
                         suspendCoroutine {
                             var cancelled = false

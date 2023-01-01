@@ -5,6 +5,7 @@ import androidx.compose.runtime.*
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.jetbrains.compose.web.attributes.Draggable
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Img
@@ -61,6 +62,8 @@ fun NotificationDisplay(
                     src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
                         classes(Styles.smallBorderHorizontalImage)
+
+                        draggable(Draggable.False)
 
                         style {
                             gridColumn((1 + i * 2).toString())

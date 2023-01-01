@@ -3,10 +3,7 @@ import FocusHandler
 import Styles
 import androidx.compose.runtime.*
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.web.attributes.InputType
-import org.jetbrains.compose.web.attributes.disabled
-import org.jetbrains.compose.web.attributes.onSubmit
-import org.jetbrains.compose.web.attributes.placeholder
+import org.jetbrains.compose.web.attributes.*
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 
@@ -40,6 +37,8 @@ fun ChatInput(
                     src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
                         classes(Styles.smallBorderHorizontalImage)
+
+                        draggable(Draggable.False)
 
                         style {
                             gridColumn((1 + i * 2).toString())

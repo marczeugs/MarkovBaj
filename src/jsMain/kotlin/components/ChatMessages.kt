@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import kotlinx.browser.window
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import org.jetbrains.compose.web.attributes.Draggable
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.Div
 import org.jetbrains.compose.web.dom.Img
@@ -52,7 +53,15 @@ fun ChatMessages(
         Img(
             src = "img/achievements/trophy.webp",
             attrs = {
-                classes(Styles.achievementCompleteTrophyIcon, *(if (achievementCompletionMap.size == achievements.size) arrayOf() else arrayOf(Styles.hidden)))
+                classes(Styles.achievementCompleteTrophyIcon)
+
+                style {
+                    if (achievementCompletionMap.size != achievements.size) {
+                        display(DisplayStyle.None)
+                    }
+                }
+
+                draggable(Draggable.False)
                 title("You have completed all the achievements! Never doubt the god gamer forsenSmug")
 
                 onClick {
@@ -72,12 +81,18 @@ fun ChatMessages(
         ) {
             Img(
                 src = "img/tts_off.webp",
-                attrs = { classes(Styles.ttsMutedSettingIcon, *(if (muted) arrayOf() else arrayOf(Styles.hidden))) }
+                attrs = {
+                    classes(Styles.ttsMutedSettingIcon, *(if (muted) arrayOf() else arrayOf(Styles.hidden)))
+                    draggable(Draggable.False)
+                }
             )
 
             Img(
                 src = "img/tts_on.webp",
-                attrs = { classes(Styles.ttsMutedSettingIcon, *(if (!muted) arrayOf() else arrayOf(Styles.hidden))) }
+                attrs = {
+                    classes(Styles.ttsMutedSettingIcon, *(if (!muted) arrayOf() else arrayOf(Styles.hidden)))
+                    draggable(Draggable.False)
+                }
             )
         }
 
@@ -91,6 +106,8 @@ fun ChatMessages(
                     src = "img/chatmessages/box_corner_$cornerImageIndex.webp",
                     attrs = {
                         classes(Styles.chatBorderCorner)
+
+                        draggable(Draggable.False)
 
                         style {
                             gridColumn((1 + (i / 2) * 2).toString())

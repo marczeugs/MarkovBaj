@@ -33,7 +33,11 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         }
 
         on<MessageCreateEvent> {
-            if (selfId in message.mentionedUserIds || CommonConstants.triggerKeyword in message.content.lowercase() && RuntimeVariables.botActuallySendReplies) {
+            if (
+                (selfId in message.mentionedUserIds || CommonConstants.triggerKeyword in message.content.lowercase())
+                && RuntimeVariables.discordActuallySendReplies
+                && (message.author?.id ?: message.data.author.id) != selfId
+            ) {
                 val response = tryGeneratingReplyFromWords(markovChain, message.content.split(CommonConstants.wordSeparatorRegex), platform = "Discord")
                     ?: markovChain.generateSequence().joinToString(" ")
 
@@ -42,7 +46,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         }
 
         on<ChatInputCommandInteractionCreateEvent> {
-            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov" || !RuntimeVariables.botActuallySendReplies) {
+            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov" || !RuntimeVariables.discordActuallySendReplies) {
                 return@on
             }
 
@@ -50,7 +54,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
                 ?: markovChain.generateSequence().joinToString(" ")
 
             interaction.respondPublic {
-                content = response.take(2000)
+                content = "Input: ${interaction.command.strings["query"] ?: "-"}\n\nOutput: ${response.take(2000)}"
             }
         }
 
