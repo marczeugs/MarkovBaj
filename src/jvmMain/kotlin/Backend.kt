@@ -393,7 +393,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
         }
 
         get<Routes.Api.Query> { queryInput ->
-            if (RuntimeVariables.backendCheckedReferrer != null && context.request.header("Referer") != RuntimeVariables.backendCheckedReferrer) {
+            if (RuntimeVariables.backendCheckedReferrer != null && context.request.header("Referer")?.startsWith(RuntimeVariables.backendCheckedReferrer) != true) {
                 logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")} because of invalid referrer, input has length ${queryInput.input?.length}, starts with: \"${queryInput.input?.take(200)}\"" }
                 call.respondText("This API is not public. Please refrain from using it from external sources.", status = HttpStatusCode.Forbidden)
                 return@get
