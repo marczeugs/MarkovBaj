@@ -2,10 +2,12 @@ package components
 import FocusHandler
 import Styles
 import androidx.compose.runtime.*
+import kotlinx.browser.window
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.*
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
+import org.w3c.dom.url.URLSearchParams
 
 @Composable
 fun ChatInput(
@@ -25,6 +27,10 @@ fun ChatInput(
     }
 
     LaunchedEffect(Unit) {
+        URLSearchParams(window.location.search).get("input")?.let {
+            text = it
+        }
+
         focusHandler.focus()
     }
 

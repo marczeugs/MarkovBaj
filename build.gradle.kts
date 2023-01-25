@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "marczeugs.markovbaj"
-version = "3.0.0"
+version = "3.0.1"
 
 repositories {
     google()
@@ -54,6 +54,7 @@ kotlin {
                 devServer?.`open` = false
             }
         }
+
         binaries.executable()
     }
 
@@ -148,6 +149,8 @@ kotlin {
                         requireCapability("dev.kord:core-voice:$kordVersion")
                     }
                 }
+
+                implementation("com.github.twitch4j:twitch4j:1.12.0")
             }
         }
 
