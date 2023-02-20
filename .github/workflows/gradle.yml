@@ -23,7 +23,7 @@ jobs:
               run: VERSION=$(gradle properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}') && echo VERSION=$VERSION >> $GITHUB_OUTPUT
             - name: Create Release
               id: create_release
-              uses: actions/create-release@v1.0.0
+              uses: actions/create-release@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
@@ -32,15 +32,15 @@ jobs:
                   draft: false
                   prerelease: false
             - name: Build Backend
-              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              uses: gradle/gradle-build-action@v2
               with:
                 arguments: shadowJar
             - name: Build Frontend Resources
-              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              uses: gradle/gradle-build-action@v2
               with:
                 arguments: jsBrowserProductionExecutableDistributeResources
             - name: Build Frontend JS
-              uses: gradle/gradle-build-action@67421db6bd0bf253fb4bd25b31ebb98943c375e1
+              uses: gradle/gradle-build-action@v2
               with:
                 arguments: jsBrowserProductionWebpack
             - name: Upload Backend Jar
