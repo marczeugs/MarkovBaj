@@ -17,7 +17,7 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger("MarkovBaj:Discord")
 
 suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
-    Kord(RuntimeVariables.discordToken).apply {
+    Kord(RuntimeVariables.Discord.botToken).apply {
         on<ReadyEvent> {
             logger.info { "Discord bot ready." }
 
@@ -35,7 +35,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         on<MessageCreateEvent> {
             if (
                 (selfId in message.mentionedUserIds || CommonConstants.triggerKeyword in message.content.lowercase())
-                && RuntimeVariables.discordActuallySendReplies
+                && RuntimeVariables.Discord.actuallySendReplies
                 && (message.author?.id ?: message.data.author.id) != selfId
             ) {
                 val response = tryGeneratingReplyFromWords(markovChain, message.content.split(CommonConstants.wordSeparatorRegex), platform = "Discord")
@@ -46,7 +46,7 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
         }
 
         on<ChatInputCommandInteractionCreateEvent> {
-            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov" || !RuntimeVariables.discordActuallySendReplies) {
+            if (interaction.data.applicationId != selfId || interaction.data.data.name.value != "markov" || !RuntimeVariables.Discord.actuallySendReplies) {
                 return@on
             }
 

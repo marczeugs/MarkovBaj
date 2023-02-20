@@ -89,12 +89,12 @@ private object Routes {
 
 private val logger = KotlinLogging.logger("MarkovBaj:Backend")
 
-private val redditLoginRedirectUrl = "${RuntimeVariables.backendServerUrl}/janitorbackend/callback"
+private val redditLoginRedirectUrl = "${RuntimeVariables.Backend.serverUrl}/janitorbackend/callback"
 
 fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String>) {
     embeddedServer(
         CIO,
-        port = RuntimeVariables.backendServerPort,
+        port = RuntimeVariables.Backend.serverPort,
         host = "0.0.0.0",
         module = {
             myApplicationModule(markovRedditClient, json, markovChain)
@@ -126,17 +126,17 @@ private suspend fun ApplicationCall.respondReturnToLogin() {
 private fun setupRedditClient(session: Session, validateUser: Boolean = true): RedditClient? {
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
-        appId = "${RuntimeVariables.botAppId} Comment Sanitation and Waste Management Engineer Duties",
+        appId = "${RuntimeVariables.Reddit.botAppId} Comment Sanitation and Waste Management Engineer Duties",
         version = BuildInfo.PROJECT_VERSION,
-        redditUsername = RuntimeVariables.botAuthorRedditUsername
+        redditUsername = RuntimeVariables.Reddit.botAuthorRedditUsername
     )
 
     val redditClient = RedditClient::class.constructors.first().call(
         OkHttpNetworkAdapter(userAgent),
         OAuthData.create(session.redditAccessToken, listOf("identity"), session.redditRefreshToken, Date.from(session.redditAccessTokenExpiration.toJavaInstant())),
         Credentials.webapp(
-            clientId = RuntimeVariables.backendRedditClientId,
-            clientSecret = RuntimeVariables.backendRedditClientSecret,
+            clientId = RuntimeVariables.Backend.redditClientId,
+            clientSecret = RuntimeVariables.Backend.redditClientSecret,
             redirectUrl = redditLoginRedirectUrl
         ),
         NoopTokenStore(),
@@ -145,7 +145,7 @@ private fun setupRedditClient(session: Session, validateUser: Boolean = true): R
         logHttp = false
     }
 
-    return if (redditClient.me().username.lowercase() in RuntimeVariables.backendPermittedUsers || !validateUser) {
+    return if (redditClient.me().username.lowercase() in RuntimeVariables.Backend.permittedUsers || !validateUser) {
         redditClient
     } else {
         null
@@ -195,8 +195,8 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                     accessTokenUrl = "https://www.reddit.com/api/v1/access_token",
                     accessTokenRequiresBasicAuth = true,
                     requestMethod = HttpMethod.Post,
-                    clientId = RuntimeVariables.backendRedditClientId,
-                    clientSecret = RuntimeVariables.backendRedditClientSecret,
+                    clientId = RuntimeVariables.Backend.redditClientId,
+                    clientSecret = RuntimeVariables.Backend.redditClientSecret,
                     defaultScopes = listOf("identity")
                 )
             }
@@ -245,7 +245,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
 
                 val userRedditClientName = setupRedditClient(newSession, validateUser = false)!!.me().username
 
-                if (userRedditClientName.lowercase() in RuntimeVariables.backendPermittedUsers) {
+                if (userRedditClientName.lowercase() in RuntimeVariables.Backend.permittedUsers) {
                     logger.info { "User '$userRedditClientName' has logged into the janitor backend." }
                     call.sessions.set(newSession)
                 } else {
@@ -333,7 +333,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                     return@get
                 }
 
-                if (commentToDelete.author.lowercase() != RuntimeVariables.botRedditUsername.lowercase()) {
+                if (commentToDelete.author.lowercase() != RuntimeVariables.Reddit.botUsername.lowercase()) {
                     call.respondText("Comment was not posted by authenticated account.", status = HttpStatusCode.BadRequest)
                     return@get
                 }
@@ -393,7 +393,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
         }
 
         get<Routes.Api.Query> { queryInput ->
-            if (RuntimeVariables.backendCheckedReferrer != null && context.request.header("Referer")?.startsWith(RuntimeVariables.backendCheckedReferrer) != true) {
+            if (RuntimeVariables.Backend.checkedReferrer != null && context.request.header("Referer")?.startsWith(RuntimeVariables.Backend.checkedReferrer) != true) {
                 logger.warn { "Rejected Markov chain query request from ${context.request.header("X-Real-Ip")} because of invalid referrer, input has length ${queryInput.input?.length}, starts with: \"${queryInput.input?.take(200)}\"" }
                 call.respondText("This API is not public. Please refrain from using it from external sources.", status = HttpStatusCode.Forbidden)
                 return@get
@@ -409,7 +409,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
 
             logger.info { "Serving Markov chain query request from ${context.request.header("X-Real-Ip")}, input has length ${queryInput.input?.length ?: 0}, starts with: \"${queryInput.input?.take(200)}\"" }
 
-            val response = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+            val response = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
                 query?.split(CommonConstants.wordSeparatorRegex)?.windowed(CommonConstants.consideredValuesForGeneration)?.shuffled()?.firstNotNullOfOrNull { potentialChainStart ->
                     if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
                         markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)

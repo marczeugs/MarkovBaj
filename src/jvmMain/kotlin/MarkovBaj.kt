@@ -45,17 +45,17 @@ fun main() {
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
 
     val redditBotCredentials = Credentials.script(
-        username = RuntimeVariables.botRedditUsername,
-        password = RuntimeVariables.botRedditPassword,
-        clientId = RuntimeVariables.botRedditClientId,
-        clientSecret = RuntimeVariables.botRedditClientSecret
+        username = RuntimeVariables.Reddit.botUsername,
+        password = RuntimeVariables.Reddit.botPassword,
+        clientId = RuntimeVariables.Reddit.botClientId,
+        clientSecret = RuntimeVariables.Reddit.botClientSecret
     )
 
     val userAgent = UserAgent(
         platform = "JVM/JRAW",
-        appId = RuntimeVariables.botAppId,
+        appId = RuntimeVariables.Reddit.botAppId,
         version = BuildInfo.PROJECT_VERSION,
-        redditUsername = RuntimeVariables.botAuthorRedditUsername
+        redditUsername = RuntimeVariables.Reddit.botAuthorRedditUsername
     )
 
     val redditClient = OAuthHelper.automatic(OkHttpNetworkAdapter(userAgent), redditBotCredentials).apply {
@@ -72,15 +72,19 @@ fun main() {
         setupDiscordBot(markovChain)
     }
 
+    botCoroutineScope.launch(Dispatchers.IO) {
+        setupTwitchBot(markovChain)
+    }
 
-    val activeSubreddit = redditClient.subreddit(BotConstants.activeSubreddit)
+
+    val activeSubreddit = redditClient.subreddit(RuntimeVariables.Reddit.activeSubreddit)
 
     var alreadyProcessedPostIds = listOf<String>()
     var alreadyProcessedCommentsIds = listOf<String>()
 
     logger.info("Bot running.")
 
-    fixedRateTimer(period = BotConstants.checkInterval.inWholeMilliseconds) {
+    fixedRateTimer(period = RuntimeVariables.Reddit.checkInterval.inWholeMilliseconds) {
         botCoroutineScope.launch {
             try {
                 val newInboxMessages = redditClient.me()
@@ -90,7 +94,7 @@ fun main() {
                     .accumulateMerged(1)
                     .filter {
                         it.subject == "username mention" ||
-                        it.subject.startsWith("comment reply") && CommonConstants.triggerKeyword.lowercase() in it.body.lowercase() && it.subreddit != BotConstants.activeSubreddit
+                        it.subject.startsWith("comment reply") && CommonConstants.triggerKeyword.lowercase() in it.body.lowercase() && it.subreddit != RuntimeVariables.Reddit.activeSubreddit
                     }
 
                 val newPosts = activeSubreddit.posts()
@@ -98,16 +102,16 @@ fun main() {
                     .limit(10)
                     .build()
                     .accumulateMerged(1)
-                    .filter { it.created.toInstant().toKotlinInstant() > Clock.System.now() - BotConstants.checkInterval * 2 && it.id !in alreadyProcessedPostIds }
+                    .filter { it.created.toInstant().toKotlinInstant() > Clock.System.now() - RuntimeVariables.Reddit.checkInterval * 2 && it.id !in alreadyProcessedPostIds }
 
                 val newComments = activeSubreddit.comments()
                     .limit(100)
                     .build()
                     .accumulateMerged(1)
                     .filter {
-                        it.created.toInstant().toKotlinInstant() > Clock.System.now() - BotConstants.checkInterval * 2 &&
+                        it.created.toInstant().toKotlinInstant() > Clock.System.now() - RuntimeVariables.Reddit.checkInterval * 2 &&
                         it.id !in alreadyProcessedCommentsIds &&
-                        it.id !in newInboxMessages.filter { message -> message.subreddit == BotConstants.activeSubreddit }.map { message -> message.id }
+                        it.id !in newInboxMessages.filter { message -> message.subreddit == RuntimeVariables.Reddit.activeSubreddit }.map { message -> message.id }
                     }
                 
                 logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
@@ -117,9 +121,9 @@ fun main() {
 
                 var commentCounter = 0
 
-                if (RuntimeVariables.botAnswerMentions) {
+                if (RuntimeVariables.Reddit.answerMentions) {
                     for (message in newInboxMessages) {
-                        if (commentCounter >= BotConstants.maxCommentsPerCheck) {
+                        if (commentCounter >= RuntimeVariables.Reddit.maxCommentsPerCheck) {
                             logger.warn("Hit comment limit, not posting any more replies.")
                             return@launch
                         }
@@ -131,7 +135,7 @@ fun main() {
 
                         val wordsInTitle = message.body.split(CommonConstants.wordSeparatorRegex)
 
-                        val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
                         } else {
                             null
@@ -150,12 +154,12 @@ fun main() {
                         redditClient.me().inbox().markRead(true, message.fullName)
                         commentCounter++
 
-                        delay(BotConstants.delayBetweenComments)
+                        delay(RuntimeVariables.Reddit.delayBetweenComments)
                     }
                 }
 
                 for (post in newPosts) {
-                    if (commentCounter >= BotConstants.maxCommentsPerCheck) {
+                    if (commentCounter >= RuntimeVariables.Reddit.maxCommentsPerCheck) {
                         logger.warn("Hit comment limit, not posting any more replies.")
                         return@launch
                     }
@@ -167,7 +171,7 @@ fun main() {
                     if (CommonConstants.triggerKeyword.lowercase() in post.title.lowercase()) {
                         val wordsInTitle = post.title.split(CommonConstants.wordSeparatorRegex)
 
-                        val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
                         } else {
                             null
@@ -185,12 +189,12 @@ fun main() {
                         post.toReference(redditClient).safeReply(actualReply)
                         commentCounter++
 
-                        delay(BotConstants.delayBetweenComments)
+                        delay(RuntimeVariables.Reddit.delayBetweenComments)
                     }
                 }
 
                 for (comment in newComments) {
-                    if (commentCounter >= BotConstants.maxCommentsPerCheck) {
+                    if (commentCounter >= RuntimeVariables.Reddit.maxCommentsPerCheck) {
                         logger.warn("Hit comment limit, not posting any more replies.")
                         return@launch
                     }
@@ -202,7 +206,7 @@ fun main() {
                     if (CommonConstants.triggerKeyword.lowercase() in comment.body.lowercase()) {
                         val wordsInComment = comment.body.split(CommonConstants.wordSeparatorRegex)
 
-                        val relatedReply = if (Math.random() > BotConstants.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
                             tryGeneratingReplyFromWords(markovChain, wordsInComment, platform = "Reddit")
                         } else {
                             null
@@ -220,7 +224,7 @@ fun main() {
                         comment.toReference(redditClient).safeReply(actualReply)
                         commentCounter++
 
-                        delay(BotConstants.delayBetweenComments)
+                        delay(RuntimeVariables.Reddit.delayBetweenComments)
                     }
                 }
             } catch (e: Exception) {
@@ -242,7 +246,7 @@ fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<St
 }
 
 private fun PublicContributionReference.safeReply(text: String) {
-    if (RuntimeVariables.botActuallySendReplies) {
+    if (RuntimeVariables.Reddit.actuallySendReplies) {
         try {
             reply(text)
             logger.info("Replied with '$text'.")

@@ -1,21 +1,21 @@
-plugins {
-    val kotlinVersion: String by System.getProperties()
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-    kotlin("multiplatform") version kotlinVersion
+plugins {
+    kotlin("multiplatform")
 
     // Common
-    kotlin("plugin.serialization") version kotlinVersion
+    kotlin("plugin.serialization")
 
     // JVM Backend (Bot + Janitor Backend + REST API)
     id("com.github.johnrengelman.shadow") version "7.1.2"
     application
 
     // Website Frontend
-    id("org.jetbrains.compose") version "1.3.0-rc01"
+    id("org.jetbrains.compose") version "1.3.0"
 }
 
 group = "marczeugs.markovbaj"
-version = "3.0.2"
+version = "3.1.0"
 
 repositories {
     google()
@@ -47,6 +47,14 @@ tasks.build {
     dependsOn(buildInfoGenerator)
 }
 
+tasks.compileJava {
+    targetCompatibility = "17"
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = "17"
+}
+
 kotlin {
     js(IR) {
         browser {
@@ -65,17 +73,15 @@ kotlin {
     jvm("jvmScripts")
 
 
-    val kotlinVersion: String by System.getProperties()
-    val ktorVersion: String by System.getProperties()
-    val kotlinXSerializationVersion: String by System.getProperties()
-    val kotlinXCoroutinesVersion: String by System.getProperties()
-    val kordVersion: String by System.getProperties()
+    val kotlinVersion: String by project
+    val ktorVersion: String by project
+    val kotlinXSerializationVersion: String by project
+    val kotlinXCoroutinesVersion: String by project
+    val kordVersion: String by project
 
     sourceSets {
         all {
             languageSettings.apply {
-                languageVersion = "1.8"
-
                 optIn("kotlinx.serialization.ExperimentalSerializationApi")
                 optIn("kotlin.time.ExperimentalTime")
                 optIn("kotlin.ExperimentalStdlibApi")
@@ -136,13 +142,10 @@ kotlin {
                 implementation("io.ktor:ktor-server-auth-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
                 implementation("io.ktor:ktor-client-core-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-client-apache-jvm:$ktorVersion")
+                implementation("io.ktor:ktor-client-cio-jvm:$ktorVersion")
 
                 implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.463")
-
-                implementation("io.ktor:ktor-client-core:$ktorVersion")
-                implementation("io.ktor:ktor-client-cio:$ktorVersion")
 
                 implementation("dev.kord:kord-core:$kordVersion") {
                     capabilities {
