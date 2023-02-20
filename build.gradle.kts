@@ -182,6 +182,23 @@ kotlin {
     }
 }
 
+// Builds in Gradle 8.0+ fail without this because the `jvm` and `jvmScripts` derived configurations have the same attributes
+configurations {
+    val dummyAttribute = Attribute.of("dummy", String::class.java)
+
+    getByName("jvmScriptsApiElements") {
+        attributes {
+            attribute(dummyAttribute, "dummy")
+        }
+    }
+
+    getByName("jvmScriptsRuntimeElements") {
+        attributes {
+            attribute(dummyAttribute, "dummy")
+        }
+    }
+}
+
 application {
     mainClass.set("MarkovBajKt")
 }

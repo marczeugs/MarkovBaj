@@ -20,7 +20,7 @@ jobs:
                   distribution: 'temurin'
             - name: Get Release Version
               id: get_version
-              run: VERSION=$(gradle properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}') && echo name=VERSION=$VERSION >> $GITHUB_OUTPUT
+              run: VERSION=$(./gradlew properties --no-daemon --console=plain -q | grep "^version:" | awk '{printf $2}') && echo name=VERSION=$VERSION >> $GITHUB_OUTPUT
             - name: Create Release
               id: create_release
               uses: actions/create-release@v1.0.0
