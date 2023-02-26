@@ -38,6 +38,30 @@ private sealed interface MessageExclusionCriteria {
     data class Regex(val value: kotlin.text.Regex) : MessageExclusionCriteria
 }
 
+private val emoteCodeMapping = mapOf(
+    "9674" to "forsenE",
+    "9677" to "gachiBASS",
+    "9673" to "forsenDespair",
+    "9685" to "forsenBased",
+    "9682" to "OMEGALUL",
+    "9669" to "Copesen",
+    "9684" to "PagMan",
+    "9679" to "Sadeg",
+    "9672" to "forsenCD",
+    "9671" to "BatChest",
+    "9675" to ":tf:",
+    "9666" to "Clueless",
+    "9678" to "monkaOMEGA",
+    "9683" to "WutFace",
+    "9668" to "cmonBruh",
+    "9680" to "pepeLaugh",
+    "9676" to "FeelsOkayMan",
+    "9681" to "LULE",
+    "9670" to "forsenLevel",
+    "9667" to "Okayeg",
+    "10257" to "amongE",
+)
+
 
 suspend fun main() {
     val filteredAuthors = listOf(
@@ -45,12 +69,16 @@ suspend fun main() {
         "[deleted]",
     )
 
-    val replacedParts = mapOf(
-        Regex("(?:^|\\s)*${CommonConstants.triggerKeyword}(?:$|\\s)*", RegexOption.IGNORE_CASE) to "", // Bot mentions
-        Regex("(?:^|\\s)?:\\d+:(?:$|\\s)?", RegexOption.IGNORE_CASE) to " ", // Emotes
-        Regex("&amp;#x200B;", RegexOption.IGNORE_CASE) to "\u200b", // Weird stuff with zero width spaces
-        Regex("!?\\[(?:img|gif)]\\(.+\\)", RegexOption.IGNORE_CASE) to "", // Remove emotes and images
-        Regex("\\n", RegexOption.IGNORE_CASE) to "", // Remove line breaks, handling them is just a pain
+    val replacedParts = mapOf<Regex, (MatchResult) -> String>(
+        Regex("(?:^|\\s)${CommonConstants.triggerKeyword}(?:$|\\s)", RegexOption.IGNORE_CASE) to { " " }, // Bot mentions
+        Regex("!?\\[img]\\(emote\\|.+?\\|([0-9]+)\\)", RegexOption.IGNORE_CASE) to { match -> emoteCodeMapping[match.groupValues[1]]?.let { " $it " } ?: "" }, // Emotes
+        Regex("\\[(.*?)]\\(.*?\\)", RegexOption.IGNORE_CASE) to { it.groupValues[1] }, // Remove Markdown links
+        Regex("https?://.+?(?:$|\\s)", RegexOption.IGNORE_CASE) to { "" }, // Remove bare links
+        Regex("&amp;#x200B;\\s*", RegexOption.IGNORE_CASE) to { "" }, // Weird stuff with zero width spaces at the beginning of comments
+        Regex("&.{2,3};", RegexOption.IGNORE_CASE) to { "" }, // Remove HTML escape codes
+        Regex("\\n+", RegexOption.IGNORE_CASE) to { " " }, // Remove line breaks, handling them is just a pain
+        Regex("  +", RegexOption.IGNORE_CASE) to { " " }, // Normalise spaces
+        //Regex("!?\\[(?:img|gif)]\\(.+\\)", RegexOption.IGNORE_CASE) to { "" }, // Remove remaining emotes and images
     )
 
     val messageExclusionCriteriaWordParts = listOf(
@@ -86,6 +114,7 @@ suspend fun main() {
         MessageExclusionCriteria.String("groom"),
         MessageExclusionCriteria.String("ape"),
         MessageExclusionCriteria.String("gas"),
+        MessageExclusionCriteria.String("hink"),
         MessageExclusionCriteria.Regex(Regex("n.?word", RegexOption.IGNORE_CASE)),
         MessageExclusionCriteria.Regex(Regex("shoo?t", RegexOption.IGNORE_CASE)),
         MessageExclusionCriteria.Regex(Regex("self.?harm", RegexOption.IGNORE_CASE)),

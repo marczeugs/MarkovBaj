@@ -38,7 +38,7 @@ fun ChatInput(
         Div(attrs = { classes(Styles.chatInputBackground) })
 
         Div(attrs = { classes(Styles.chatInputBorderContainer, Styles.smallBorderContainer) }) {
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 Img(
                     src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
@@ -54,7 +54,7 @@ fun ChatInput(
                 )
             }
 
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 Div(
                     attrs = {
                         style {

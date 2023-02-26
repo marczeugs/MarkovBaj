@@ -33,13 +33,23 @@ fun main() {
         ignoreUnknownKeys = true
     }
 
-    val markovChain = MarkovChain<String>(CommonConstants.consideredValuesForGeneration)
+    val markovChain = MarkovChain<String?>(CommonConstants.consideredValuesForGeneration) { it?.trim() }
 
     logger.info("Building Markov chain...")
 
     val chainBuildTime = measureTime {
         val messages = json.decodeFromStream<List<String>>(File("data.json").inputStream())
-        markovChain.addData(messages.map { message -> message.split(CommonConstants.wordSeparatorRegex) })
+        val messageData = messages.map { it.toWordParts() }
+
+        markovChain.addData(
+            messageData,
+            messageData.flatMap { values ->
+                listOf(
+                    values.take(CommonConstants.consideredValuesForGeneration).map { it?.trim() },
+                    values.drop(1).take(CommonConstants.consideredValuesForGeneration).map { it?.trim() }
+                )
+            }
+        )
     }
 
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
@@ -133,10 +143,10 @@ fun main() {
                             return@launch
                         }
 
-                        val wordsInTitle = message.body.split(CommonConstants.wordSeparatorRegex)
+                        val wordsInTitle = message.body.toWordParts()
 
                         val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
-                            tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
+                            markovChain.tryGeneratingReplyFromWords(wordsInTitle, platform = "Reddit")
                         } else {
                             null
                         }
@@ -145,7 +155,7 @@ fun main() {
                             logger.info("Replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}') with related answer...")
                             relatedReply
                         } else {
-                            markovChain.generateSequence().joinToString(" ").also {
+                            markovChain.generateRandomReply().also {
                                 logger.info("Default replying to mention by ${message.author} in message ${message.id} in ${message.subreddit?.let { "r/$it" } ?: "-"} ('${message.body}')...")
                             }
                         }
@@ -169,10 +179,10 @@ fun main() {
                     }
 
                     if (CommonConstants.triggerKeyword.lowercase() in post.title.lowercase()) {
-                        val wordsInTitle = post.title.split(CommonConstants.wordSeparatorRegex)
+                        val wordsInTitle = post.title.toWordParts()
 
                         val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
-                            tryGeneratingReplyFromWords(markovChain, wordsInTitle, platform = "Reddit")
+                            markovChain.tryGeneratingReplyFromWords(wordsInTitle, platform = "Reddit")
                         } else {
                             null
                         }
@@ -181,7 +191,7 @@ fun main() {
                             logger.info("Replying to post ${post.id} ('${post.title}') with related answer...")
                             relatedReply
                         } else {
-                            markovChain.generateSequence().joinToString(" ").also {
+                            markovChain.generateRandomReply().also {
                                 logger.info("Default replied to post ${post.id} ('${post.title}')...")
                             }
                         }
@@ -204,10 +214,10 @@ fun main() {
                     }
 
                     if (CommonConstants.triggerKeyword.lowercase() in comment.body.lowercase()) {
-                        val wordsInComment = comment.body.split(CommonConstants.wordSeparatorRegex)
+                        val wordsInComment = comment.body.toWordParts()
 
                         val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
-                            tryGeneratingReplyFromWords(markovChain, wordsInComment, platform = "Reddit")
+                            markovChain.tryGeneratingReplyFromWords(wordsInComment, platform = "Reddit")
                         } else {
                             null
                         }
@@ -216,7 +226,7 @@ fun main() {
                             logger.info("Replying to comment ${comment.id} ('${comment.body}') with related answer...")
                             relatedReply
                         } else {
-                            markovChain.generateSequence().joinToString(" ").also {
+                            markovChain.generateRandomReply().also {
                                 logger.info("Default replying to comment ${comment.id} ('${comment.body}')...")
                             }
                         }
@@ -234,22 +244,11 @@ fun main() {
     }
 }
 
-fun tryGeneratingReplyFromWords(markovChain: MarkovChain<String>, words: List<String>, platform: String): String? {
-    words.windowed(CommonConstants.consideredValuesForGeneration).shuffled().forEach { potentialChainStart ->
-        if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
-            return markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
-        }
-    }
-
-    generalLogger.info("[$platform] Unable to generate a response, using default instead...")
-    return null
-}
-
 private fun PublicContributionReference.safeReply(text: String) {
     if (RuntimeVariables.Reddit.actuallySendReplies) {
         try {
-            reply(text)
-            logger.info("Replied with '$text'.")
+            reply(text.take(5000))
+            logger.info("Replied with '${text.take(5000)}'.")
         } catch (e: Exception) {
             logger.error("Reply failed:", e)
         }

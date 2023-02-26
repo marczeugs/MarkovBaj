@@ -4,7 +4,7 @@ import com.github.twitch4j.TwitchClientBuilder
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent
 import com.github.twitch4j.common.enums.CommandPermission
 
-fun setupTwitchBot(markovChain: MarkovChain<String>) {
+fun setupTwitchBot(markovChain: MarkovChain<String?>) {
     val credentials = OAuth2Credential("twitch", RuntimeVariables.Twitch.botToken)
 
     val twitchClient = TwitchClientBuilder.builder()
@@ -31,8 +31,8 @@ fun setupTwitchBot(markovChain: MarkovChain<String>) {
             twitchClient.chat.sendMessage(it.channel.name, "Bot is now ${if (enabled) "enabled" else "disabled"}.")
         } else if (enabled && CommonConstants.triggerKeyword in it.message.lowercase()) {
             val reply = (
-                tryGeneratingReplyFromWords(markovChain, it.message.split(CommonConstants.wordSeparatorRegex), platform = "Twitch")
-                    ?: markovChain.generateSequence().joinToString(" ")
+                markovChain.tryGeneratingReplyFromWords(it.message.toWordParts(), platform = "Twitch")
+                    ?: markovChain.generateRandomReply()
             ).take(500)
 
             twitchClient.chat.sendMessage(it.channel.name, reply)

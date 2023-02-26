@@ -57,7 +57,7 @@ fun NotificationDisplay(
         Div(attrs = { classes(Styles.notificationBackground) })
 
         Div(attrs = { classes(Styles.smallBorderContainer, Styles.notificationInnerContainer) }) {
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 Img(
                     src = "img/chatinput/input_${if (i == 0) "left" else "right"}.webp",
                     attrs = {
@@ -73,7 +73,7 @@ fun NotificationDisplay(
                 )
             }
 
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 Div(
                     attrs = {
                         style {

@@ -1,14 +1,14 @@
-class MarkovChain<T>(private val consideredValuesForGeneration: Int) {
+class MarkovChain<T>(private val consideredValuesForGeneration: Int, private val inputValueMapperFunction: (T) -> T = { it }) {
     val chainStarts = WeightedSet<List<T>>()
     private val followingValues = mutableMapOf<List<T>, WeightedSet<T>>()
 
-    fun addData(data: List<List<T>>) {
-        chainStarts.addData(data.map { it.take(consideredValuesForGeneration) })
+    fun addData(data: List<List<T>>, chainStarts: List<List<T>> = data.map { values -> values.take(consideredValuesForGeneration).map { inputValueMapperFunction(it) } }) {
+        this.chainStarts.addData(chainStarts)
 
         data.forEach { sequence ->
-            sequence.windowed(consideredValuesForGeneration + 1).forEach {
-                val consideredValues = it.dropLast(1)
-                val generatedValue = it.takeLast(1)
+            sequence.windowed(consideredValuesForGeneration + 1).forEach { values ->
+                val consideredValues = values.dropLast(1).map { inputValueMapperFunction(it) }
+                val generatedValue = values.takeLast(1)
 
                 followingValues.getOrPut(consideredValues) { WeightedSet() }.addData(generatedValue)
             }
@@ -26,8 +26,8 @@ class MarkovChain<T>(private val consideredValuesForGeneration: Int) {
 
         val generatedValues = start.toMutableList()
 
-        for (index in start.size until maxLength) {
-            followingValues[generatedValues.slice(index - consideredValuesForGeneration until index)]?.randomValue()?.let {
+        for (index in start.size..<maxLength) {
+            followingValues[generatedValues.slice((index - consideredValuesForGeneration)..<index).map { inputValueMapperFunction(it) }]?.randomValue()?.let {
                 generatedValues.add(it)
             } ?: break
         }

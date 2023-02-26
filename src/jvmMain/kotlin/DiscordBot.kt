@@ -1,6 +1,8 @@
 
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.Kord
 import dev.kord.core.behavior.interaction.respondPublic
+import dev.kord.core.entity.Message
 import dev.kord.core.event.gateway.ReadyEvent
 import dev.kord.core.event.guild.GuildCreateEvent
 import dev.kord.core.event.interaction.ChatInputCommandInteractionCreateEvent
@@ -10,13 +12,19 @@ import dev.kord.gateway.Intent
 import dev.kord.gateway.Intents
 import dev.kord.gateway.PrivilegedIntent
 import dev.kord.rest.builder.interaction.string
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
+import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger("MarkovBaj:Discord")
 
-suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
+suspend fun setupDiscordBot(markovChain: MarkovChain<String?>) {
+    val perGuildMessageDebounceFlow = mutableMapOf</* guildId */ Snowflake, MutableSharedFlow<Message>>()
+
     Kord(RuntimeVariables.Discord.botToken).apply {
         on<ReadyEvent> {
             logger.info { "Discord bot ready." }
@@ -38,10 +46,23 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
                 && RuntimeVariables.Discord.actuallySendReplies
                 && (message.author?.id ?: message.data.author.id) != selfId
             ) {
-                val response = tryGeneratingReplyFromWords(markovChain, message.content.split(CommonConstants.wordSeparatorRegex), platform = "Discord")
-                    ?: markovChain.generateSequence().joinToString(" ")
+                guildId?.let { guildId ->
+                    val flow = perGuildMessageDebounceFlow.getOrPut(guildId) {
+                        MutableSharedFlow<Message>(replay = 1).apply {
+                            launch {
+                                @OptIn(FlowPreview::class)
+                                debounce(2.seconds).collect {
+                                    val response = markovChain.tryGeneratingReplyFromWords(it.content.toWordParts(), platform = "Discord")
+                                        ?: markovChain.generateRandomReply()
 
-                message.channel.createMessage(response.take(2000))
+                                    it.channel.createMessage(response)
+                                }
+                            }
+                        }
+                    }
+
+                    flow.emit(message)
+                }
             }
         }
 
@@ -50,11 +71,11 @@ suspend fun setupDiscordBot(markovChain: MarkovChain<String>) {
                 return@on
             }
 
-            val response = interaction.command.strings["query"]?.let { tryGeneratingReplyFromWords(markovChain, it.split(CommonConstants.wordSeparatorRegex), platform = "Discord") }
-                ?: markovChain.generateSequence().joinToString(" ")
+            val response = interaction.command.strings["query"]?.let { markovChain.tryGeneratingReplyFromWords(it.toWordParts(), platform = "Discord") }
+                ?: markovChain.generateRandomReply()
 
             interaction.respondPublic {
-                content = "Input: ${interaction.command.strings["query"] ?: "-"}\n\nOutput: ${response.take(2000)}"
+                content = "Input: ${interaction.command.strings["query"] ?: "-"}\n\nOutput: ${response.take(1000)}"
             }
         }
 

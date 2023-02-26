@@ -91,13 +91,13 @@ private val logger = KotlinLogging.logger("MarkovBaj:Backend")
 
 private val redditLoginRedirectUrl = "${RuntimeVariables.Backend.serverUrl}/janitorbackend/callback"
 
-fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String>) {
+fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
     embeddedServer(
-        CIO,
+        factory = CIO,
         port = RuntimeVariables.Backend.serverPort,
         host = "0.0.0.0",
         module = {
-            myApplicationModule(markovRedditClient, json, markovChain)
+            backendModule(markovRedditClient, json, markovChain)
         }
     ).start(wait = false)
 }
@@ -152,7 +152,7 @@ private fun setupRedditClient(session: Session, validateUser: Boolean = true): R
     }
 }
 
-fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String>) {
+fun Application.backendModule(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
     install(CallLogging) {
         level = Level.TRACE
     }
@@ -209,12 +209,12 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             call.respondHtml {
                 head {
                     title("MarkovBaj Janitor Backend Login")
-                    styleLink(this@myApplicationModule.run { href(Routes.JanitorBackend.StylesCss()) })
+                    styleLink(this@backendModule.run { href(Routes.JanitorBackend.StylesCss()) })
                 }
 
                 body {
                     button {
-                        onClick = "location.href = '${this@myApplicationModule.run { href(Routes.JanitorBackend.Login()) }}'"
+                        onClick = "location.href = '${this@backendModule.run { href(Routes.JanitorBackend.Login()) }}'"
 
                         +"Login"
                     }
@@ -252,7 +252,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
                     logger.info { "User '$userRedditClientName' has tried to log into the janitor backend, but isn't permitted to do so." }
                 }
 
-                call.respondRedirect(this@myApplicationModule.run { href(Routes.JanitorBackend.Manage()) })
+                call.respondRedirect(this@backendModule.run { href(Routes.JanitorBackend.Manage()) })
             }
         }
 
@@ -270,7 +270,7 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             call.respondHtml {
                 head {
                     title("MarkovBaj Janitor Backend")
-                    styleLink(this@myApplicationModule.run { href(Routes.JanitorBackend.StylesCss()) })
+                    styleLink(this@backendModule.run { href(Routes.JanitorBackend.StylesCss()) })
                 }
 
                 body {
@@ -410,18 +410,12 @@ fun Application.myApplicationModule(markovRedditClient: RedditClient, json: Json
             logger.info { "Serving Markov chain query request from ${context.request.header("X-Real-Ip")}, input has length ${queryInput.input?.length ?: 0}, starts with: \"${queryInput.input?.take(200)}\"" }
 
             val response = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
-                query?.split(CommonConstants.wordSeparatorRegex)?.windowed(CommonConstants.consideredValuesForGeneration)?.shuffled()?.firstNotNullOfOrNull { potentialChainStart ->
-                    if (markovChain.chainStarts.weightMap.keys.any { words -> words.map { it.lowercase() } == potentialChainStart.map { it.lowercase() } }) {
-                        markovChain.generateSequence(start = potentialChainStart).joinToString(" ").take(5000)
-                    } else {
-                        null
-                    }
-                }
+                query?.let { markovChain.tryGeneratingReplyFromWords(it.toWordParts(), "Backend") }
             } else {
                 null
             } ?: run {
-                markovChain.generateSequence().joinToString(" ").take(5000)
-            }
+                markovChain.generateRandomReply()
+            }.take(500)
 
             call.respondText(response)
         }

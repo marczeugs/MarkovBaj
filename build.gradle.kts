@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "marczeugs.markovbaj"
-version = "3.1.0"
+version = "3.2.0"
 
 repositories {
     google()
@@ -93,6 +93,8 @@ kotlin {
             kotlin.srcDir(buildInfoGenerator.map { it.destinationDir })
 
             dependencies {
+                implementation("io.github.microutils:kotlin-logging:2.1.23")
+
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:$kotlinXSerializationVersion")
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
             }
@@ -127,24 +129,23 @@ kotlin {
                 implementation("com.squareup.okhttp3:okhttp:4.10.0")
                 implementation("com.squareup.moshi:moshi:1.13.0")
 
-                implementation("io.github.microutils:kotlin-logging-jvm:2.1.23")
                 implementation("org.slf4j:slf4j-api:2.0.0")
                 implementation("org.slf4j:slf4j-simple:2.0.0")
 
-                implementation("io.ktor:ktor-server-core-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-cio-jvm:$ktorVersion")
+                implementation("io.ktor:ktor-server-core:$ktorVersion")
+                implementation("io.ktor:ktor-server-cio:$ktorVersion")
                 implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
-                implementation("io.ktor:ktor-server-call-logging-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-host-common-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-sessions-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-resources-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-auth-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-client-core-jvm:$ktorVersion")
-                implementation("io.ktor:ktor-client-cio-jvm:$ktorVersion")
+                implementation("io.ktor:ktor-server-call-logging:$ktorVersion")
+                implementation("io.ktor:ktor-server-host-common:$ktorVersion")
+                implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+                implementation("io.ktor:ktor-server-sessions:$ktorVersion")
+                implementation("io.ktor:ktor-server-resources:$ktorVersion")
+                implementation("io.ktor:ktor-server-auth:$ktorVersion")
+                implementation("io.ktor:ktor-server-cors:$ktorVersion")
+                implementation("io.ktor:ktor-client-core:$ktorVersion")
+                implementation("io.ktor:ktor-client-cio:$ktorVersion")
 
-                implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-html:0.8.0")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.463")
 
                 implementation("dev.kord:kord-core:$kordVersion") {

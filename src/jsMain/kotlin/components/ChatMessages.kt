@@ -99,7 +99,7 @@ fun ChatMessages(
         Div(attrs = { classes(Styles.chatBackground) })
 
         Div(attrs = { classes(Styles.chatBorderContainer) }) {
-            for (i in 0 until 4) {
+            for (i in 0..<4) {
                 val cornerImageIndex = remember { Random.nextInt(CORNER_IMAGE_COUNT) }
 
                 Img(
@@ -129,7 +129,7 @@ fun ChatMessages(
                 )
             }
 
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 val sideImageIndex = remember { Random.nextInt(SIDE_IMAGE_COUNT) }
 
                 Div(
@@ -151,7 +151,7 @@ fun ChatMessages(
                 ) { }
             }
 
-            for (i in 0 until 2) {
+            for (i in 0..<2) {
                 val sideImageIndex = remember { Random.nextInt(SIDE_IMAGE_COUNT) }
 
                 Div(

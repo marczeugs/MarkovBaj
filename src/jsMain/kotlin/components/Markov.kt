@@ -31,8 +31,8 @@ fun Markov(
         while (isActive) {
             if (talking) {
                 powerLevel += when (Random.nextInt(100)) {
-                    in 0 until 20 -> -1
-                    in 70 until 100 -> 1
+                    in 0..<20 -> -1
+                    in 70..<100 -> 1
                     else -> 0
                 }
             } else {
@@ -65,14 +65,14 @@ fun Markov(
             attrs = { classes(Styles.markovHeadPart, Styles.markovBodyPart, *(if (!talking) arrayOf() else arrayOf(Styles.hidden)), *(if (!muted) arrayOf() else arrayOf(Styles.hidden))) }
         )
 
-        for (i in 0 until MOUTH_IMAGE_COUNT) {
+        for (i in 0..<MOUTH_IMAGE_COUNT) {
             Img(
                 src = "img/markov/mouth_talking_$i.webp",
                 attrs = { classes(Styles.markovHeadPart, Styles.markovBodyPart, *(if (i == mouthImageIndex && talking) arrayOf() else arrayOf(Styles.hidden)), *(if (!muted) arrayOf() else arrayOf(Styles.hidden))) }
             )
         }
 
-        for (i in 0 until NEEDLE_IMAGE_COUNT) {
+        for (i in 0..<NEEDLE_IMAGE_COUNT) {
             Img(
                 src = "img/markov/needle_$i.webp",
                 attrs = { classes(Styles.markovBodyPart, *(if (i == powerLevel) arrayOf() else arrayOf(Styles.hidden))) }
