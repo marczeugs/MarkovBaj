@@ -1,5 +1,7 @@
+
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toKotlinInstant
@@ -12,6 +14,7 @@ import net.dean.jraw.oauth.Credentials
 import net.dean.jraw.oauth.OAuthHelper
 import net.dean.jraw.references.PublicContributionReference
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.hours
 
 private val logger = KotlinLogging.logger("MarkovBaj:Reddit")
 
@@ -192,6 +195,13 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
             } catch (e: Exception) {
                 logger.error("Error while running timer loop:", e)
             }
+        }
+    }
+
+    // Keep coroutine scope alive
+    launch {
+        while (isActive) {
+            delay(1.hours)
         }
     }
 }

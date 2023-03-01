@@ -1,6 +1,6 @@
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
@@ -12,9 +12,7 @@ import kotlin.time.measureTime
 
 private val logger = KotlinLogging.logger("MarkovBaj:General")
 
-suspend fun main() {
-    val botCoroutineScope = CoroutineScope(Dispatchers.Default)
-
+suspend fun main() = coroutineScope {
     logger.info { "Starting MarkovBaj Backend version ${BuildInfo.PROJECT_VERSION}, Build ${Instant.fromEpochMilliseconds(BuildInfo.PROJECT_BUILD_TIMESTAMP_MILLIS)}..." }
 
 
@@ -46,21 +44,23 @@ suspend fun main() {
 
     val redditClient = setupRedditClient()
 
-    botCoroutineScope.launch {
+    launch {
         setupBackendServer(redditClient, json, markovChain)
     }
 
-    botCoroutineScope.launch {
+    launch {
         setupRedditMessageSenderWebSocket(redditClient, json)
     }
 
-    botCoroutineScope.launch {
+    launch {
         setupDiscordBot(markovChain)
     }
 
-    botCoroutineScope.launch(Dispatchers.IO) {
+    launch(Dispatchers.IO) {
         setupTwitchBot(markovChain)
     }
 
     setupRedditBot(redditClient, markovChain)
+
+    Unit
 }
