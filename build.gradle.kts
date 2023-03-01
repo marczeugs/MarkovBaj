@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "marczeugs.markovbaj"
-version = "3.2.0"
+version = "3.3.0"
 
 repositories {
     google()
@@ -142,6 +142,8 @@ kotlin {
                 implementation("io.ktor:ktor-server-resources:$ktorVersion")
                 implementation("io.ktor:ktor-server-auth:$ktorVersion")
                 implementation("io.ktor:ktor-server-cors:$ktorVersion")
+                implementation("io.ktor:ktor-server-websockets:$ktorVersion")
+
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")
 
@@ -198,6 +200,10 @@ configurations {
             attribute(dummyAttribute, "dummy")
         }
     }
+}
+dependencies {
+    implementation("io.ktor:ktor-server-core-jvm:2.2.3")
+    implementation("io.ktor:ktor-server-websockets-jvm:2.2.3")
 }
 
 application {

@@ -1,13 +1,16 @@
 class MarkovChain<T>(private val consideredValuesForGeneration: Int, private val inputValueMapperFunction: (T) -> T = { it }) {
     val chainStarts = WeightedSet<List<T>>()
-    private val followingValues = mutableMapOf<List<T>, WeightedSet<T>>()
+    private val followingValues = mutableMapOf<List<T>, WeightedSet<T?>>()
 
     fun addData(data: List<List<T>>, chainStarts: List<List<T>> = data.map { values -> values.take(consideredValuesForGeneration).map { inputValueMapperFunction(it) } }) {
         this.chainStarts.addData(chainStarts)
 
         data.forEach { sequence ->
-            sequence.windowed(consideredValuesForGeneration + 1).forEach { values ->
-                val consideredValues = values.dropLast(1).map { inputValueMapperFunction(it) }
+            (sequence + listOf(null)).windowed(consideredValuesForGeneration + 1).forEach { values ->
+                // Cast is always safe because sequence ending marker (null) is only added at the end and always dropped by `dropLast(1)`
+                @Suppress("UNCHECKED_CAST")
+                val consideredValues = values.dropLast(1).map { inputValueMapperFunction(it as T) }
+
                 val generatedValue = values.takeLast(1)
 
                 followingValues.getOrPut(consideredValues) { WeightedSet() }.addData(generatedValue)

@@ -70,15 +70,18 @@ suspend fun main() {
     )
 
     val replacedParts = mapOf<Regex, (MatchResult) -> String>(
-        Regex("(?:^|\\s)${CommonConstants.triggerKeyword}(?:$|\\s)", RegexOption.IGNORE_CASE) to { " " }, // Bot mentions
+        Regex(CommonConstants.triggerKeyword, RegexOption.LITERAL) to { "" }, // Bot mentions
         Regex("!?\\[img]\\(emote\\|.+?\\|([0-9]+)\\)", RegexOption.IGNORE_CASE) to { match -> emoteCodeMapping[match.groupValues[1]]?.let { " $it " } ?: "" }, // Emotes
+        Regex("!?\\[gif]\\(.+?\\)", RegexOption.IGNORE_CASE) to { "" }, // Reddit embedded GIFs
         Regex("\\[(.*?)]\\(.*?\\)", RegexOption.IGNORE_CASE) to { it.groupValues[1] }, // Remove Markdown links
-        Regex("https?://.+?(?:$|\\s)", RegexOption.IGNORE_CASE) to { "" }, // Remove bare links
+//        Regex("https?://.+?(?:$|\\s)", RegexOption.IGNORE_CASE) to { "" }, // Remove bare links
         Regex("&amp;#x200B;\\s*", RegexOption.IGNORE_CASE) to { "" }, // Weird stuff with zero width spaces at the beginning of comments
-        Regex("&.{2,3};", RegexOption.IGNORE_CASE) to { "" }, // Remove HTML escape codes
+        Regex("&amp;", RegexOption.IGNORE_CASE) to { "&" }, // Unescape &
+        Regex("&lt;", RegexOption.IGNORE_CASE) to { "<" }, // Unescape <
+        Regex("&gt;", RegexOption.IGNORE_CASE) to { ">" }, // Unescape >
         Regex("\\n+", RegexOption.IGNORE_CASE) to { " " }, // Remove line breaks, handling them is just a pain
         Regex("  +", RegexOption.IGNORE_CASE) to { " " }, // Normalise spaces
-        //Regex("!?\\[(?:img|gif)]\\(.+\\)", RegexOption.IGNORE_CASE) to { "" }, // Remove remaining emotes and images
+//        Regex("!?\\[(?:img|gif)]\\(.+\\)", RegexOption.IGNORE_CASE) to { "" }, // Remove remaining emotes and images
     )
 
     val messageExclusionCriteriaWordParts = listOf(

@@ -17,6 +17,8 @@ import io.ktor.server.resources.Resources
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 import kotlinx.css.*
 import kotlinx.css.properties.TextDecoration
 import kotlinx.css.properties.TextDecorationLine
@@ -91,13 +93,44 @@ private val logger = KotlinLogging.logger("MarkovBaj:Backend")
 
 private val redditLoginRedirectUrl = "${RuntimeVariables.Backend.serverUrl}/janitorbackend/callback"
 
-fun setupBackendServer(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
+fun setupBackendServer(redditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
     embeddedServer(
         factory = CIO,
-        port = RuntimeVariables.Backend.serverPort,
         host = "0.0.0.0",
+        port = RuntimeVariables.Backend.serverPort,
         module = {
-            backendModule(markovRedditClient, json, markovChain)
+            backendModule(redditClient, json, markovChain)
+        }
+    ).start(wait = false)
+}
+
+@Serializable
+private data class PostRedditMessageRequest(
+    val parentId: String,
+    val content: String
+)
+
+fun setupRedditMessageSenderWebSocket(redditClient: RedditClient, json: Json) {
+    embeddedServer(
+        factory = CIO,
+        host = "127.0.0.1",
+        port = 14113,
+        module = {
+            install(WebSockets)
+
+            routing {
+                webSocket("/postredditmessage") {
+                    try {
+                        val data = json.decodeFromString<PostRedditMessageRequest>((incoming.receive() as Frame.Text).readText())
+                        redditClient.comment(data.parentId).reply(data.content)
+
+                        close(CloseReason(CloseReason.Codes.NORMAL, "Message posted."))
+                    } catch (e: Exception) {
+                        logger.error(e) { "Invalid request to /postredditmessage:" }
+                        close(CloseReason(CloseReason.Codes.NOT_CONSISTENT, "Invalid request."))
+                    }
+                }
+            }
         }
     ).start(wait = false)
 }
@@ -152,7 +185,7 @@ private fun setupRedditClient(session: Session, validateUser: Boolean = true): R
     }
 }
 
-fun Application.backendModule(markovRedditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
+fun Application.backendModule(redditClient: RedditClient, json: Json, markovChain: MarkovChain<String?>) {
     install(CallLogging) {
         level = Level.TRACE
     }
@@ -324,7 +357,7 @@ fun Application.backendModule(markovRedditClient: RedditClient, json: Json, mark
             try {
                 val pathSegments = Url(deleteCommentRequest.commentLink).pathSegments
 
-                val commentToDelete = @Suppress("UNCHECKED_CAST") (markovRedditClient.lookup("t1_${pathSegments[6]}") as Listing<Comment>)
+                val commentToDelete = @Suppress("UNCHECKED_CAST") (redditClient.lookup("t1_${pathSegments[6]}") as Listing<Comment>)
                     .children
                     .first()
 
@@ -338,7 +371,7 @@ fun Application.backendModule(markovRedditClient: RedditClient, json: Json, mark
                     return@get
                 }
 
-                markovRedditClient.comment(pathSegments[6]).delete()
+                redditClient.comment(pathSegments[6]).delete()
                 logger.info { "Comment '${pathSegments[6]}' at '${deleteCommentRequest.commentLink}' with the content '${commentToDelete.body}' was deleted by user '${userRedditClientName}'." }
                 call.respondText("Comment was deleted.")
             } catch (e: Exception) {
