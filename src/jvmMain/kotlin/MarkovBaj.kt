@@ -32,8 +32,8 @@ suspend fun main() = coroutineScope {
             messageData,
             messageData.flatMap { values ->
                 listOf(
-                    values.take(CommonConstants.consideredValuesForGeneration).map { it?.trim() },
-                    values.drop(1).take(CommonConstants.consideredValuesForGeneration).map { it?.trim() }
+                    values.take(CommonConstants.consideredValuesForGeneration),
+                    values.drop(1).take(CommonConstants.consideredValuesForGeneration)
                 )
             }
         )

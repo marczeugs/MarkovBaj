@@ -5,8 +5,8 @@ package scripts
 import CommonConstants
 import MarkovChain
 import generateRandomReply
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
 import toWordParts
 import java.io.File
@@ -26,9 +26,18 @@ fun main() {
     logger.info("Building Markov chain...")
 
     val chainBuildTime = measureTime {
-        val messages = json.decodeFromString<List<String>>(File("data.json").readText())
-        markovChain.addData(messages.map { it.toWordParts() })
-        println(messages.size)
+        val messages = json.decodeFromStream<List<String>>(File("data.json").inputStream())
+        val messageData = messages.map { it.toWordParts() }
+
+        markovChain.addData(
+            messageData,
+            messageData.flatMap { values ->
+                listOf(
+                    values.take(CommonConstants.consideredValuesForGeneration),
+                    values.drop(1).take(CommonConstants.consideredValuesForGeneration)
+                )
+            }
+        )
     }
 
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")

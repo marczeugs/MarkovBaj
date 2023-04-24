@@ -41,6 +41,7 @@ fun setupRedditClient(): RedditClient {
 
     return redditClient
 }
+
 suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<String?>) = coroutineScope {
     val activeSubreddit = redditClient.subreddit(RuntimeVariables.Reddit.activeSubreddit)
 

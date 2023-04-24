@@ -70,7 +70,7 @@ suspend fun main() {
     )
 
     val replacedParts = mapOf<Regex, (MatchResult) -> String>(
-        Regex(CommonConstants.triggerKeyword, RegexOption.LITERAL) to { "" }, // Bot mentions
+        Regex(CommonConstants.triggerKeyword, setOf(RegexOption.IGNORE_CASE, RegexOption.LITERAL)) to { "" }, // Bot mentions
         Regex("!?\\[img]\\(emote\\|.+?\\|([0-9]+)\\)", RegexOption.IGNORE_CASE) to { match -> emoteCodeMapping[match.groupValues[1]]?.let { " $it " } ?: "" }, // Emotes
         Regex("!?\\[gif]\\(.+?\\)", RegexOption.IGNORE_CASE) to { "" }, // Reddit embedded GIFs
         Regex("\\[(.*?)]\\(.*?\\)", RegexOption.IGNORE_CASE) to { it.groupValues[1] }, // Remove Markdown links
