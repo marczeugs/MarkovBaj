@@ -104,37 +104,6 @@ fun setupBackendServer(redditClient: RedditClient, json: Json, markovChain: Mark
     ).start(wait = false)
 }
 
-@Serializable
-private data class PostRedditMessageRequest(
-    val parentId: String,
-    val content: String
-)
-
-fun setupRedditMessageSenderWebSocket(redditClient: RedditClient, json: Json) {
-    embeddedServer(
-        factory = CIO,
-        host = "127.0.0.1",
-        port = 14113,
-        module = {
-            install(WebSockets)
-
-            routing {
-                webSocket("/postredditmessage") {
-                    try {
-                        val data = json.decodeFromString<PostRedditMessageRequest>((incoming.receive() as Frame.Text).readText())
-                        redditClient.comment(data.parentId).reply(data.content)
-
-                        close(CloseReason(CloseReason.Codes.NORMAL, "Message posted."))
-                    } catch (e: Exception) {
-                        logger.error(e) { "Invalid request to /postredditmessage:" }
-                        close(CloseReason(CloseReason.Codes.NOT_CONSISTENT, "Invalid request."))
-                    }
-                }
-            }
-        }
-    ).start(wait = false)
-}
-
 private suspend fun ApplicationCall.respondReturnToLogin() {
     respondHtml {
         head {

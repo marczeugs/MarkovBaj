@@ -1,6 +1,7 @@
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -42,7 +43,7 @@ fun setupRedditClient(): RedditClient {
     return redditClient
 }
 
-suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<String?>) = coroutineScope {
+suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<String?>, eventFlow: MutableSharedFlow<ApiEvent>) = coroutineScope {
     val activeSubreddit = redditClient.subreddit(RuntimeVariables.Reddit.activeSubreddit)
 
     var alreadyProcessedPostIds = listOf<String>()
@@ -81,6 +82,19 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
                     }
 
                 logger.info("${newInboxMessages.size} new mention(s), ${newPosts.size} new post(s), ${newComments.size} new comment(s).")
+
+                eventFlow.tryEmit(
+                    ApiEvent.CommentsCollected(
+                        comments = newComments.map {
+                            ApiEvent.CommentsCollected.Message(
+                                id = it.id,
+                                author = it.author,
+                                content = it.body,
+                                posted = it.created.toInstant().toKotlinInstant()
+                            )
+                        }
+                    )
+                )
 
                 alreadyProcessedPostIds = newPosts.map { it.id }
                 alreadyProcessedCommentsIds = newInboxMessages.map { it.id }.union(newComments.map { it.id }).toList()

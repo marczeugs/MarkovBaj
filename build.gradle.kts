@@ -11,11 +11,11 @@ plugins {
     application
 
     // Website Frontend
-    id("org.jetbrains.compose") version "1.3.0"
+    id("org.jetbrains.compose") version "1.5.11"
 }
 
 group = "marczeugs.markovbaj"
-version = "3.3.2"
+version = "3.4.0"
 
 repositories {
     google()
@@ -68,6 +68,7 @@ kotlin {
 
     jvm {
         withJava()
+        attributes.attribute(Attribute.of("dummy", String::class.java), "KT-55751")
     }
 
     jvm("jvmScripts")
@@ -197,13 +198,9 @@ configurations {
 
     getByName("jvmScriptsRuntimeElements") {
         attributes {
-            attribute(dummyAttribute, "dummy")
+            attribute(dummyAttribute, "dummy1")
         }
     }
-}
-dependencies {
-    implementation("io.ktor:ktor-server-core-jvm:2.2.3")
-    implementation("io.ktor:ktor-server-websockets-jvm:2.2.3")
 }
 
 application {

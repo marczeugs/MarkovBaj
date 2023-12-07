@@ -1,6 +1,7 @@
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
@@ -43,13 +44,14 @@ suspend fun main() = coroutineScope {
 
 
     val redditClient = setupRedditClient()
+    val eventFlow = MutableSharedFlow<ApiEvent>(extraBufferCapacity = 1)
 
     launch {
         setupBackendServer(redditClient, json, markovChain)
     }
 
     launch {
-        setupRedditMessageSenderWebSocket(redditClient, json)
+        setupBackendApiWebsocketServer(redditClient, json, eventFlow)
     }
 
     launch {
@@ -60,7 +62,7 @@ suspend fun main() = coroutineScope {
         setupTwitchBot(markovChain)
     }
 
-    setupRedditBot(redditClient, markovChain)
+    setupRedditBot(redditClient, markovChain, eventFlow)
 
     Unit
 }
