@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
 import toWordParts
+import tryGeneratingReplyFromWords
 import java.io.File
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
@@ -26,7 +27,7 @@ fun main() {
     logger.info("Building Markov chain...")
 
     val chainBuildTime = measureTime {
-        val messages = json.decodeFromStream<List<String>>(File("data.json").inputStream())
+        val messages = json.decodeFromStream<List<String>>(File("comments/data.json").inputStream())
         val messageData = messages.map { it.toWordParts() }
 
         markovChain.addData(

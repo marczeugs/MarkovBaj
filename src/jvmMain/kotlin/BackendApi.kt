@@ -14,6 +14,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
 import net.dean.jraw.RedditClient
+import net.dean.jraw.models.EmbeddedMedia
+import net.dean.jraw.models.SubmissionPreview
 
 private val logger = KotlinLogging.logger("MarkovBaj:BackendApi")
 
@@ -43,16 +45,57 @@ private sealed interface OneShotBackendApiResponse {
 @Serializable
 sealed interface ApiEvent {
     @Serializable
-    @SerialName("messagesCollected")
+    @SerialName("commentsCollected")
     data class CommentsCollected(
-        val comments: List<Message>,
+        val comments: List<Comment>,
     ) : ApiEvent {
         @Serializable
-        data class Message(
+        data class Comment(
+            val created: Instant,
+            val distinguished: String,
             val id: String,
+            val fullName: String,
             val author: String,
-            val content: String,
-            val posted: Instant
+            val body: String,
+            val url: String?,
+            val authorFlairText: String?,
+            val submissionFullName: String,
+            val submissionTitle: String?,
+            val subredditType: String,
+            val parentFullName: String,
+            val subredditFullName: String,
+        )
+    }
+
+    @Serializable
+    @SerialName("submissionsCollected")
+    data class SubmissionsCollected(
+        val submissions: List<Submission>,
+    ) : ApiEvent {
+        @Serializable
+        data class Submission(
+            val created: Instant,
+            val distinguished: String,
+            val id: String,
+            val body: String?,
+            val title: String,
+            val url: String,
+            val authorFlairText: String?,
+            val domain: String,
+            val embeddedMedia: Boolean,
+            val isNsfw: Boolean,
+            val isSelfPost: Boolean,
+            val isSpoiler: Boolean,
+            val linkFlairCssClass: String?,
+            val linkFlairText: String?,
+            val permalink: String,
+            val postHint: String?,
+            val preview: Boolean,
+            val selfText: String?,
+            val thumbnail: String?,
+            val fullName: String,
+            val subreddit: String,
+            val subredditFullName: String,
         )
     }
 }

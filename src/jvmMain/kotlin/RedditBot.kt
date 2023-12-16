@@ -85,12 +85,52 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
 
                 eventFlow.tryEmit(
                     ApiEvent.CommentsCollected(
-                        comments = newComments.map {
-                            ApiEvent.CommentsCollected.Message(
-                                id = it.id,
-                                author = it.author,
-                                content = it.body,
-                                posted = it.created.toInstant().toKotlinInstant()
+                        comments = newComments.map { comment ->
+                            ApiEvent.CommentsCollected.Comment(
+                                id = comment.id,
+                                created = comment.created.toInstant().toKotlinInstant(),
+                                author = comment.author,
+                                body = comment.body,
+                                url = comment.url,
+                                authorFlairText = comment.authorFlairText,
+                                submissionFullName = comment.submissionFullName,
+                                submissionTitle = comment.submissionTitle,
+                                subredditType = comment.subredditType.name,
+                                distinguished = comment.distinguished.name,
+                                fullName = comment.fullName,
+                                parentFullName = comment.parentFullName,
+                                subredditFullName = comment.subredditFullName,
+                            )
+                        }
+                    )
+                )
+
+                eventFlow.tryEmit(
+                    ApiEvent.SubmissionsCollected(
+                        submissions = newPosts.map { post ->
+                            ApiEvent.SubmissionsCollected.Submission(
+                                created = post.created.toInstant().toKotlinInstant(),
+                                distinguished = post.distinguished.name,
+                                id = post.id,
+                                body = post.body,
+                                title = post.title,
+                                url = post.url,
+                                authorFlairText = post.authorFlairText,
+                                domain = post.domain,
+                                embeddedMedia = post.embeddedMedia != null,
+                                isNsfw = post.isNsfw,
+                                isSelfPost = post.isSelfPost,
+                                isSpoiler = post.isSpoiler,
+                                linkFlairCssClass = post.linkFlairCssClass,
+                                linkFlairText = post.linkFlairText,
+                                permalink = post.permalink,
+                                postHint = post.postHint,
+                                preview = post.preview != null,
+                                selfText = post.selfText,
+                                thumbnail = post.thumbnail,
+                                fullName = post.fullName,
+                                subreddit = post.subreddit,
+                                subredditFullName = post.subredditFullName,
                             )
                         }
                     )

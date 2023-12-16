@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "marczeugs.markovbaj"
-version = "3.4.0"
+version = "3.4.1"
 
 repositories {
     google()
