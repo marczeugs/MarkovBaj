@@ -1,8 +1,10 @@
 
+import backend.setupBackendServer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -43,26 +45,39 @@ suspend fun main() = coroutineScope {
     logger.info("Building the chain took ${chainBuildTime.toDouble(DurationUnit.SECONDS)}s.")
 
 
-    val redditClient = setupRedditClient()
     val eventFlow = MutableSharedFlow<ApiEvent>(extraBufferCapacity = 1)
 
-    launch {
-        setupBackendServer(redditClient, json, markovChain)
+    val redditClient = if (RuntimeVariables.Reddit.enabled) setupRedditClient() else null
+
+    if (RuntimeVariables.Reddit.enabled) {
+        launch {
+            setupRedditBot(redditClient!!, markovChain, eventFlow)
+        }
+    } else {
+        logger.warn("Reddit bot is not enabled.")
+    }
+
+    if (RuntimeVariables.Discord.enabled) {
+        launch {
+            setupDiscordBot(markovChain)
+        }
+    } else {
+        logger.warn("Discord bot is not enabled.")
+    }
+
+    if (RuntimeVariables.Twitch.enabled) {
+        launch {
+            setupTwitchBot(markovChain)
+        }
+    } else {
+        logger.warn("Twitch bot is not enabled.")
     }
 
     launch {
         setupBackendApiWebsocketServer(redditClient, json, eventFlow)
     }
 
-    launch {
-        setupDiscordBot(markovChain)
+    withContext(Dispatchers.IO) {
+        setupBackendServer(redditClient, json, markovChain)
     }
-
-    launch(Dispatchers.IO) {
-        setupTwitchBot(markovChain)
-    }
-
-    setupRedditBot(redditClient, markovChain, eventFlow)
-
-    Unit
 }

@@ -15,7 +15,7 @@ plugins {
 }
 
 group = "marczeugs.markovbaj"
-version = "3.4.1"
+version = "3.5.0"
 
 repositories {
     google()
@@ -76,6 +76,7 @@ kotlin {
 
     val kotlinVersion: String by project
     val ktorVersion: String by project
+    val exposedVersion: String by project
     val kotlinXSerializationVersion: String by project
     val kotlinXCoroutinesVersion: String by project
     val kordVersion: String by project
@@ -103,7 +104,7 @@ kotlin {
 
         val jsMain by getting {
             dependencies {
-                implementation(compose.web.core)
+                implementation(compose.html.core)
                 implementation(compose.runtime)
 
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinXCoroutinesVersion")
@@ -118,7 +119,7 @@ kotlin {
 
         val jvmMain by getting {
             dependencies {
-                implementation(compose.web.core)
+                implementation(compose.html.core)
                 implementation(compose.runtime)
 
                 implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
@@ -148,6 +149,12 @@ kotlin {
                 implementation("io.ktor:ktor-client-core:$ktorVersion")
                 implementation("io.ktor:ktor-client-cio:$ktorVersion")
 
+                implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
+                implementation("org.postgresql:postgresql:42.6.0")
+
                 implementation("org.jetbrains.kotlinx:kotlinx-html:0.8.0")
                 implementation("org.jetbrains.kotlin-wrappers:kotlin-css:1.0.0-pre.463")
 
@@ -163,7 +170,7 @@ kotlin {
 
         val jvmScriptsMain by getting {
             dependencies {
-                implementation(compose.web.core)
+                implementation(compose.html.core)
                 implementation(compose.runtime)
 
                 implementation(kotlin("script-runtime"))

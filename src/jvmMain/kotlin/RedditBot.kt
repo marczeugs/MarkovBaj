@@ -155,7 +155,7 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
 
                         val wordsInTitle = message.body.toWordParts()
 
-                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.Common.unrelatedAnswerChance) {
                             markovChain.tryGeneratingReplyFromWords(wordsInTitle, platform = "Reddit")
                         } else {
                             null
@@ -191,7 +191,7 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
                     if (CommonConstants.triggerKeyword.lowercase() in post.title.lowercase()) {
                         val wordsInTitle = post.title.toWordParts()
 
-                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.Common.unrelatedAnswerChance) {
                             markovChain.tryGeneratingReplyFromWords(wordsInTitle, platform = "Reddit")
                         } else {
                             null
@@ -226,7 +226,7 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
                     if (CommonConstants.triggerKeyword.lowercase() in comment.body.lowercase()) {
                         val wordsInComment = comment.body.toWordParts()
 
-                        val relatedReply = if (Math.random() > RuntimeVariables.unrelatedAnswerChance) {
+                        val relatedReply = if (Math.random() > RuntimeVariables.Common.unrelatedAnswerChance) {
                             markovChain.tryGeneratingReplyFromWords(wordsInComment, platform = "Reddit")
                         } else {
                             null
