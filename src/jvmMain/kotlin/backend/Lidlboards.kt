@@ -35,11 +35,12 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                             display = Display.grid
                             gridTemplateColumns = GridTemplateColumns(1.fr, 1.fr)
                             gridTemplateRows = GridTemplateRows(1.fr)
-                            alignItems = Align.baseline
+                            alignItems = Align.center
                             paddingLeft = 32.px
                             paddingRight = 32.px
                             paddingTop = 16.px
                             paddingBottom = 16.px
+                            wordBreak = WordBreak.breakWord
                         }
 
                         "div.content" {
@@ -59,6 +60,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                         "button.expand-toggle" {
                             margin(8.px)
                             padding(8.px)
+                            flexShrink = 0
                         }
 
                         "table.collapsed tr:not(:first-child)" {
@@ -77,6 +79,13 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                         media("(max-width: 480px)") {
                             "table" {
                                 width = 100.vw
+                                minWidth = LinearDimension.auto
+                                wordBreak = WordBreak.breakWord
+                                fontSize = 10.pt
+                            }
+
+                            "th, td" {
+                                padding(6.px)
                             }
 
                             "div.header" {
@@ -94,6 +103,7 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                             }
 
                             "div.content" {
+                                padding(8.px)
                                 flexWrap = FlexWrap.wrap
                                 justifyItems = JustifyItems.center
                                 overflowX = Overflow.visible
@@ -121,13 +131,17 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                             updateExpandToggleButtons();
                         });
                         
+                        let lastWindowWidth = window.innerWidth - 1;
+                        
                         window.onresize = _ => {
-                            if (window.innerWidth < 480) {
+                            if (window.innerWidth < 480 && window.innerWidth !== lastWindowWidth) {
                                 for (const table of document.querySelectorAll('table')) {
                                     table.classList.add('collapsed');
                                 }
                                 
                                 updateExpandToggleButtons();
+                                
+                                lastWindowWidth = window.innerWidth;
                             }
                         };
                     """.trimIndent()
@@ -155,18 +169,17 @@ suspend fun PipelineContext<Unit, ApplicationCall>.lidlboards(
                     table {
                         tr {
                             th {
-                                colSpan = (headers.size - 1).toString()
-                                style = "text-align: left; padding-left: 16px;"
+                                colSpan = headers.size.toString()
 
-                                +tableDisplayName
-                            }
+                                span {
+                                    style = "display: flex; justify-content: space-between; align-items: center; padding-left: 16px;"
 
-                            th {
-                                style = "text-align: right;"
+                                    +tableDisplayName
 
-                                button(classes = "expand-toggle") {
-                                    onClick = "this.closest('table').classList.toggle('collapsed'); updateExpandToggleButtons();"
-                                    +""
+                                    button(classes = "expand-toggle") {
+                                        onClick = "this.closest('table').classList.toggle('collapsed'); updateExpandToggleButtons();"
+                                        +""
+                                    }
                                 }
                             }
                         }
