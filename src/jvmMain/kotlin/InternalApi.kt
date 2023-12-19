@@ -1,3 +1,4 @@
+
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
@@ -9,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mu.KotlinLogging
@@ -75,6 +75,7 @@ sealed interface ApiEvent {
             val created: Instant,
             val distinguished: String,
             val id: String,
+            val author: String,
             val body: String?,
             val title: String,
             val url: String,

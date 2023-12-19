@@ -66,10 +66,10 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
 
                 val newPosts = activeSubreddit.posts()
                     .sorting(SubredditSort.NEW)
-                    .limit(10)
+                    .limit(100)
                     .build()
                     .accumulateMerged(1)
-                    .filter { it.created.toInstant().toKotlinInstant() > Clock.System.now() - RuntimeVariables.Reddit.checkInterval * 2 && it.id !in alreadyProcessedPostIds }
+                    .filter { it.created.toInstant().toKotlinInstant() > Clock.System.now() - RuntimeVariables.Reddit.checkInterval * 5 && it.id !in alreadyProcessedPostIds }
 
                 val newComments = activeSubreddit.comments()
                     .limit(100)
@@ -112,6 +112,7 @@ suspend fun setupRedditBot(redditClient: RedditClient, markovChain: MarkovChain<
                                 created = post.created.toInstant().toKotlinInstant(),
                                 distinguished = post.distinguished.name,
                                 id = post.id,
+                                author = post.author,
                                 body = post.body,
                                 title = post.title,
                                 url = post.url,
