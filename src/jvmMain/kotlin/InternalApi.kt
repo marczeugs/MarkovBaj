@@ -109,7 +109,7 @@ fun setupBackendApiWebsocketServer(redditClient: RedditClient?, json: Json, even
 
             routing {
                 webSocket("/api/v1/oneshot") {
-                    backend.logger.info { "Got /api/v1/oneshot connection." }
+                    logger.info { "Got /api/v1/oneshot connection." }
 
                     try {
                         for (frame in incoming) {
@@ -117,30 +117,31 @@ fun setupBackendApiWebsocketServer(redditClient: RedditClient?, json: Json, even
                                 when (val request = json.decodeFromString<OneShotBackendApiRequest>((frame as Frame.Text).readText())) {
                                     is OneShotBackendApiRequest.PostRedditMessage -> {
                                         if (redditClient != null) {
-                                            backend.logger.info { "Commented '${request.content}' on comment ${request.parentId}." }
+                                            redditClient.comment(request.parentId).reply(request.content)
+                                            logger.info { "Commented '${request.content}' on comment ${request.parentId}." }
                                             send(Json.encodeToString<OneShotBackendApiResponse>(OneShotBackendApiResponse.Success))
                                         } else {
-                                            backend.logger.warn { "Unable to comment as Reddit bot is not set up." }
+                                            logger.warn { "Unable to comment as Reddit bot is not set up." }
                                         }
                                     }
                                 }
                             } catch (e: Exception) {
-                                backend.logger.error(e) { "Error while handling one shot API request:" }
+                                logger.error(e) { "Error while handling one shot API request:" }
                                 send(Json.encodeToString<OneShotBackendApiResponse>(OneShotBackendApiResponse.Error(error = e.stackTraceToString())))
                             }
                         }
 
                         close(CloseReason(CloseReason.Codes.NORMAL, "Message posted."))
                     } catch (e: Exception) {
-                        backend.logger.error(e) { "Error while handling one shot API request connection:" }
+                        logger.error(e) { "Error while handling one shot API request connection:" }
                         close(CloseReason(CloseReason.Codes.NOT_CONSISTENT, "Error while handling one shot API request connection."))
                     }
 
-                    backend.logger.info { "/api/v1/oneshot connection disconnected." }
+                    logger.info { "/api/v1/oneshot connection disconnected." }
                 }
 
                 webSocket("/api/v1/events") {
-                    backend.logger.info { "Got /api/v1/events connection." }
+                    logger.info { "Got /api/v1/events connection." }
 
                     try {
                         eventFlow.collect {
@@ -151,11 +152,11 @@ fun setupBackendApiWebsocketServer(redditClient: RedditClient?, json: Json, even
                             }
                         }
                     } catch (e: Exception) {
-                        backend.logger.error(e) { "Error while sending API event:" }
+                        logger.error(e) { "Error while sending API event:" }
                         close(CloseReason(CloseReason.Codes.NOT_CONSISTENT, "Error while sending API event."))
                     }
 
-                    backend.logger.info { "/api/v1/events connection disconnected." }
+                    logger.info { "/api/v1/events connection disconnected." }
                 }
             }
         }

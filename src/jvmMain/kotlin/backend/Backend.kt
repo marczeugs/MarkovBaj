@@ -114,6 +114,7 @@ fun Application.backendModule(redditClient: RedditClient?, json: Json, markovCha
                         TableDefinition.Column.Type.VarChar32 -> VarCharColumnType()
                         TableDefinition.Column.Type.Text -> TextColumnType()
                         TableDefinition.Column.Type.Integer -> IntegerColumnType()
+                        TableDefinition.Column.Type.Boolean -> BooleanColumnType()
                         TableDefinition.Column.Type.Timestamp -> KotlinInstantColumnType()
                     }
                 )

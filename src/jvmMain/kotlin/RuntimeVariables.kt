@@ -20,6 +20,7 @@ data class TableDefinition(
             @SerialName("varchar32") VarChar32,
             @SerialName("text") Text,
             @SerialName("integer") Integer,
+            @SerialName("boolean") Boolean,
             @SerialName("timestamp") Timestamp,
         }
     }
